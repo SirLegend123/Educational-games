@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fraction Wall Race</title>
+<meta name="description" content="Race the clock to build a fraction wall: every row must add up to exactly 1. Practise equivalent fractions and adding fractions.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .hud { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 12px; font-weight: 700; }
+  .hud .val { font-variant-numeric: tabular-nums; }
+  .wall { display: flex; flex-direction: column-reverse; gap: 6px; }
+  .row-1 { display: flex; height: 52px; border-radius: 8px; overflow: hidden; }
+  .whole { background: #e2e8f0; color: #0b1630; font-weight: 800; display: grid; place-items: center; width: 100%; font-size: 1.2rem; }
+  .wrow { display: flex; height: 52px; border-radius: 8px; background: transparent; position: relative; }
+  .wrow.current { outline: 3px dashed var(--line); outline-offset: 2px; background: rgba(255,255,255,.03); }
+  .wrow.done { opacity: .9; }
+  .brick {
+    height: 100%; display: grid; place-items: center; border: 2px solid rgba(11, 22, 48, .55);
+    border-radius: 6px; color: #0b1630; font-weight: 800; overflow: hidden; flex: none;
+  }
+  .brick.given { cursor: default; }
+  .brick.placed { cursor: pointer; }
+  .brick.placed:hover { filter: brightness(1.1); }
+  .frac { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.05; }
+  .frac > span:first-child { border-bottom: 2px solid currentColor; padding: 0 3px; }
+  .tray { display: flex; flex-wrap: wrap; gap: 10px; min-height: 60px; }
+  .tray .brick { height: 52px; cursor: pointer; font-size: 1.05rem; }
+  .tray .brick:hover { filter: brightness(1.12); transform: translateY(-2px); }
+  .tray .brick.fixed { width: 64px; }
+  .total { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 1.05rem; min-height: 1.6em; }
+  #msg { min-height: 1.5em; font-weight: 600; margin-top: 8px; }
+  .d2 { background: #f87171; } .d3 { background: #fb923c; } .d4 { background: #facc15; }
+  .d5 { background: #a3e635; } .d6 { background: #4ade80; } .d8 { background: #22d3ee; }
+  .d10 { background: #818cf8; } .d12 { background: #f0abfc; }
+  @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+  .wrow.flash { animation: pop .4s ease; outline: 3px solid var(--good); outline-offset: 2px; }
+  .rules li { margin-bottom: 6px; }
+  table.results { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.results td, table.results th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  table.results td:nth-child(2) { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .check { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .check input { width: 20px; height: 20px; }
+  @media (max-width: 600px) { .wrow, .row-1, .tray .brick { height: 44px; } .brick { font-size: .85rem; } }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🧱 Fraction Wall Race</h1>
+    <p class="muted">Build a fraction wall as fast as you can. Every row has to add up to <strong>exactly 1 whole</strong>: no gaps and no overhang!</p>
+    <div class="panel">
+      <h2>How to play</h2>
+      <ul class="rules">
+        <li>Each row starts with one or two bricks already in place. Tap bricks from the tray to fill the rest of the row.</li>
+        <li>The running total shows your working, e.g. <code>1/3 + 1/4 = 4/12 + 3/12 = 7/12</code>.</li>
+        <li>If a brick would make the row more than 1, it won't fit and you get a <strong>+5 second</strong> penalty. Tap a brick you placed to take it back off.</li>
+        <li>There are 10 rows, and they get trickier as you build higher. How fast can you finish?</li>
+      </ul>
+      <label class="check"><input type="checkbox" id="hard"> Hard mode: all tray bricks are the same size, so you can't judge by eye</label>
+      <p id="bestInfo" class="muted" style="margin:10px 0 0"></p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Start building</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <span>Row <span class="val" id="rowNum">1</span> of 10</span>
+      <span>⏱️ <span class="val" id="timer">0:00</span></span>
+      <span>Penalties <span class="val" id="pen">0</span>s</span>
+    </div>
+    <div class="panel">
+      <div class="wall" id="wall"></div>
+      <p class="total" id="total" style="margin:14px 0 0"></p>
+      <div id="msg" aria-live="polite"></div>
+    </div>
+    <div class="panel">
+      <h2>Brick tray</h2>
+      <div class="tray" id="tray"></div>
+    </div>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🧱🏁</div>
+      <h1>Wall complete!</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">Race again (new wall)</button>
+    </div>
+    <div class="panel">
+      <h2>Your rows</h2>
+      <table class="results"><thead><tr><th>Row</th><th>Bricks</th></tr></thead><tbody id="resultRows"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const ROWS = 10;
+const PENALTY = 5;
+const DENS = [2, 3, 4, 5, 6, 8, 10, 12];
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
+const lcm = (a, b) => a / gcd(a, b) * b;
+const frac = (n, d) => { const g = gcd(n, d); return { n: n / g, d: d / g }; };
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = randInt(0, i); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const str = (f) => f.d === 1 ? String(f.n) : `${f.n}/${f.d}`;
+
+// Sum of fractions as an exact fraction.
+function sum(fs) {
+  const L = fs.reduce((a, f) => lcm(a, f.d), 1);
+  return frac(fs.reduce((a, f) => a + f.n * (L / f.d), 0), L);
+}
+
+// Settings for row r: which denominators can mix, and how many bricks.
+function rowRules(r) {
+  if (r < 3) return { bases: [4, 6, 8], parts: [3, 4], unitOnly: true, given: 1 };
+  if (r < 6) return { bases: [6, 8, 10, 12], parts: [3, 4], unitOnly: false, given: 1 };
+  return { bases: [12, 20, 24], parts: [4, 5], unitOnly: false, given: 2 };
+}
+
+// Split 1 into "nice" fractions that use at least two different denominators.
+function makeRow(r) {
+  const rules = rowRules(r);
+  for (;;) {
+    const L = pick(rules.bases);
+    const k = pick(rules.parts);
+    // Random composition of L into k positive parts.
+    const cuts = new Set();
+    while (cuts.size < k - 1) cuts.add(randInt(1, L - 1));
+    const pts = [0, ...[...cuts].sort((a, b) => a - b), L];
+    const parts = pts.slice(1).map((v, i) => frac(v - pts[i], L));
+    if (!parts.every((f) => DENS.includes(f.d))) continue;
+    if (rules.unitOnly && !parts.every((f) => f.n === 1)) continue;
+    if (new Set(parts.map((f) => f.d)).size < 2) continue;
+    if (parts.some((f) => f.n / f.d > 0.6)) continue;
+    shuffle(parts);
+    const given = parts.slice(0, rules.given);
+    const needed = parts.slice(rules.given);
+    // Distractors: nice fractions from the same family that aren't needed.
+    const pool = [];
+    for (const d of DENS) {
+      if (r < 6 && L % d !== 0) continue;  // early rows: keep to the same family
+      for (let n = 1; n < d; n++) {
+        const f = frac(n, d);
+        if (f.d !== d || (rules.unitOnly && n !== 1) || n / d > 0.6) continue;
+        pool.push(f);
+      }
+    }
+    // A spare brick shouldn't finish the row on its own.
+    const gap = sum(needed);
+    const distractors = shuffle(pool.filter((f) => !needed.some((g) => g.n === f.n && g.d === f.d) && !(f.n === gap.n && f.d === gap.d))).slice(0, r < 3 ? 2 : 3);
+    return { given, tray: shuffle([...needed, ...distractors].map((f, i) => ({ ...f, id: i }))), placed: [] };
+  }
+}
+
+let rows, rowIdx, startTime, timerId, penalty, hard;
+
+function loadBest(mode) { try { return JSON.parse(localStorage.getItem("fractionWallBest-" + mode)); } catch { return null; } }
+function saveBest(mode, t) { try { localStorage.setItem("fractionWallBest-" + mode, JSON.stringify(t)); } catch { /* storage unavailable */ } }
+function clock(ms) { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+function showBest() {
+  const n = loadBest("normal"), h = loadBest("hard");
+  const parts = [];
+  if (n) parts.push(`normal ${clock(n)}`);
+  if (h) parts.push(`hard ${clock(h)}`);
+  $("bestInfo").textContent = parts.length ? `Your best times on this device: ${parts.join(", ")}.` : "";
+}
+showBest();
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", () => show("start"));
+
+function startGame() {
+  hard = $("hard").checked;
+  rows = Array.from({ length: ROWS }, (_, r) => makeRow(r));
+  rowIdx = 0;
+  penalty = 0;
+  startTime = performance.now();
+  $("timer").textContent = "0:00";
+  clearInterval(timerId);
+  timerId = setInterval(() => { $("timer").textContent = clock(performance.now() - startTime + penalty * 1000); }, 250);
+  show("game");
+  setMsg("");
+  render();
+}
+
+function brickEl(f, widthPct, cls) {
+  const b = document.createElement("div");
+  b.className = `brick d${f.d} ${cls || ""}`;
+  if (widthPct !== null) b.style.width = `calc(${widthPct}% )`;
+  b.innerHTML = `<span class="frac"><span>${f.n}</span><span>${f.d}</span></span>`;
+  b.setAttribute("aria-label", `${f.n} over ${f.d}`);
+  return b;
+}
+
+function render() {
+  const wall = $("wall");
+  wall.innerHTML = "";
+  const top = document.createElement("div");
+  top.className = "row-1";
+  top.innerHTML = `<div class="whole">1 whole</div>`;
+  // Built rows (bottom up), then the current row, then the "1 whole" guide on top.
+  for (let r = 0; r <= rowIdx && r < ROWS; r++) {
+    const row = rows[r];
+    const div = document.createElement("div");
+    div.className = "wrow" + (r === rowIdx ? " current" : " done");
+    for (const f of row.given) div.appendChild(brickEl(f, (f.n / f.d) * 100, "given"));
+    row.placed.forEach((f) => {
+      const b = brickEl(f, (f.n / f.d) * 100, r === rowIdx ? "placed" : "given");
+      if (r === rowIdx) {
+        b.title = "Tap to take this brick back";
+        b.addEventListener("click", () => removeBrick(f));
+      }
+      div.appendChild(b);
+    });
+    if (r === rowIdx) div.id = "currentRow";
+    wall.appendChild(div);
+  }
+  wall.appendChild(top);
+
+  $("rowNum").textContent = Math.min(rowIdx + 1, ROWS);
+  $("pen").textContent = penalty;
+  const row = rows[rowIdx];
+  const tray = $("tray");
+  tray.innerHTML = "";
+  for (const f of row.tray) {
+    const b = brickEl(f, null, hard ? "fixed" : "");
+    if (!hard) b.style.width = `max(46px, calc(${(f.n / f.d) * 100}% - 8px))`;
+    b.setAttribute("role", "button");
+    b.tabIndex = 0;
+    b.addEventListener("click", () => addBrick(f));
+    b.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); addBrick(f); } });
+    tray.appendChild(b);
+  }
+  $("total").textContent = working(row);
+}
+
+// "1/3 + 1/4 = 4/12 + 3/12 = 7/12 (need 5/12 more)"
+function working(row) {
+  const fs = [...row.given, ...row.placed];
+  const L = fs.reduce((a, f) => lcm(a, f.d), 1);
+  const total = sum(fs);
+  const left = frac(total.d - total.n, total.d);
+  const plain = fs.map(str).join(" + ");
+  const common = fs.every((f) => f.d === L) ? "" : " = " + fs.map((f) => `${f.n * (L / f.d)}/${L}`).join(" + ");
+  const whole = `${fs.reduce((a, f) => a + f.n * (L / f.d), 0)}/${L}`;
+  const simplified = str(total) !== whole ? ` = ${str(total)}` : "";
+  const end = total.n === total.d ? " = 1 ✅" : ` (need ${str(left)} more)`;
+  return fs.length === 1 ? `${plain}${end}` : `${plain}${common} = ${whole}${total.n === total.d ? "" : simplified}${end}`;
+}
+
+function setMsg(text, kind) {
+  const m = $("msg");
+  m.textContent = text;
+  m.style.color = kind === "bad" ? "var(--bad)" : kind === "good" ? "var(--good)" : "var(--muted)";
+}
+
+function addBrick(f) {
+  const row = rows[rowIdx];
+  const before = sum([...row.given, ...row.placed]);
+  const after = sum([...row.given, ...row.placed, f]);
+  if (after.n > after.d) {
+    penalty += PENALTY;
+    const L = lcm(before.d, f.d);
+    setMsg(`🚫 ${str(f)} won't fit: ${str(before)} + ${str(f)} = ${before.n * (L / before.d)}/${L} + ${f.n * (L / f.d)}/${L} = ${str(after)}, which is more than 1. (+${PENALTY}s)`, "bad");
+    const cur = $("currentRow");
+    cur.classList.remove("shake"); void cur.offsetWidth; cur.classList.add("shake");
+    $("pen").textContent = penalty;
+    return;
+  }
+  row.tray = row.tray.filter((t) => t !== f);
+  row.placed.push(f);
+  setMsg("");
+  if (after.n === after.d) return completeRow();
+  render();
+}
+
+function removeBrick(f) {
+  const row = rows[rowIdx];
+  row.placed = row.placed.filter((t) => t !== f);
+  row.tray.push(f);
+  setMsg(`Took ${str(f)} back.`);
+  render();
+}
+
+function completeRow() {
+  render();
+  const cur = $("currentRow");
+  cur.classList.remove("current");
+  cur.classList.add("flash");
+  setMsg(`🎉 Row ${rowIdx + 1} adds up to exactly 1!`, "good");
+  $("tray").innerHTML = "";
+  setTimeout(() => {
+    rowIdx++;
+    if (rowIdx >= ROWS) finish();
+    else render();
+  }, 900);
+}
+
+function finish() {
+  clearInterval(timerId);
+  const raw = performance.now() - startTime;
+  const total = raw + penalty * 1000;
+  const mode = hard ? "hard" : "normal";
+  const best = loadBest(mode);
+  const isBest = best === null || total < best;
+  if (isBest) saveBest(mode, total);
+  $("overStats").textContent = `Time ${clock(total)} (${clock(raw)} building + ${penalty}s penalties)`;
+  $("overText").textContent = (isBest ? `🏅 New best ${mode}-mode time on this device! ` : `Your best ${mode}-mode time is ${clock(best)}. `) +
+    (hard ? "" : "Ready for hard mode? Tick the box on the start screen.");
+  $("resultRows").innerHTML = "";
+  rows.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    for (const v of [i + 1, [...row.given, ...row.placed].map(str).join(" + ") + " = 1"]) {
+      const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+    }
+    $("resultRows").appendChild(tr);
+  });
+  showBest();
+  show("over");
+}
+</script>
+</body>
+</html>

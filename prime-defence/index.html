@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prime Factor Defence</title>
+<meta name="description" content="Defend your castle by breaking numbers into their prime factors. Practise prime factorisation and index notation.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .hud { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 10px; font-weight: 700; }
+  .hud .val { font-variant-numeric: tabular-nums; }
+  .lives { letter-spacing: 2px; }
+  .field-wrap { position: relative; padding: 8px; }
+  svg.field { width: 100%; height: auto; display: block; user-select: none; touch-action: manipulation; border-radius: 10px; }
+  .grass { fill: #12305a; }
+  .road { fill: none; stroke: #2a4579; stroke-width: 46; stroke-linecap: round; stroke-linejoin: round; }
+  .road-edge { fill: none; stroke: #3b5a96; stroke-width: 50; stroke-linecap: round; stroke-linejoin: round; }
+  .enemy circle.body { fill: #7c3aed; stroke: #c4b5fd; stroke-width: 3; }
+  .enemy.fast circle.body { fill: #be185d; stroke: #f9a8d4; }
+  .enemy circle.ring { fill: none; stroke: none; }
+  .enemy.target circle.ring { stroke: var(--gold); stroke-width: 3.5; fill: none; stroke-dasharray: 6 5; }
+  .enemy text.num { fill: #fff; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-family: system-ui, sans-serif; }
+  .enemy text.trail { fill: var(--gold); font-size: 13px; font-weight: 700; text-anchor: middle; font-family: ui-monospace, Consolas, monospace; paint-order: stroke; stroke: #0b1630; stroke-width: 3px; }
+  .enemy { cursor: pointer; }
+  .beam { stroke: var(--p1); stroke-width: 4; stroke-linecap: round; filter: drop-shadow(0 0 5px var(--p1)); }
+  .beam.bad { stroke: var(--bad); filter: drop-shadow(0 0 5px var(--bad)); }
+  .float { font-weight: 800; font-size: 18px; text-anchor: middle; paint-order: stroke; stroke: #0b1630; stroke-width: 4px; fill: var(--good); font-family: system-ui, sans-serif; }
+  .float.bad { fill: var(--bad); }
+  .castle { font-size: 64px; text-anchor: middle; dominant-baseline: central; }
+  .banner { fill: #fff; font-size: 30px; font-weight: 800; text-anchor: middle; paint-order: stroke; stroke: #0b1630; stroke-width: 6px; font-family: system-ui, sans-serif; }
+  .primes { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .primes button { font-size: 1.6rem; min-width: 74px; padding: 10px 14px; background: var(--p1); color: #062033; border: 0; }
+  .primes button .key { display: block; font-size: .7rem; font-weight: 600; opacity: .7; }
+  .primes button.locked { background: var(--panel-2); color: var(--muted); }
+  #msg { text-align: center; min-height: 1.6em; margin-top: 10px; font-weight: 600; }
+  ol.log { margin: 0; padding-left: 2.2em; font-family: ui-monospace, "SF Mono", Consolas, monospace; max-height: 220px; overflow: auto; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .rules li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🏰 Prime Factor Defence</h1>
+    <p class="muted">Number monsters are marching on your castle! Blast them with <strong>prime numbers</strong> to break them down. A monster is defeated when it's been divided all the way down to 1.</p>
+    <div class="panel">
+      <h2>How to play</h2>
+      <ul class="rules">
+        <li>Fire a prime by tapping its button or pressing its key: <kbd>2</kbd> <kbd>3</kbd> <kbd>5</kbd> <kbd>7</kbd>, or <kbd>1</kbd><kbd>1</kbd> for 11 and <kbd>1</kbd><kbd>3</kbd> for 13.</li>
+        <li>Your laser hits the <strong>targeted</strong> monster (dashed gold ring). That's the one at the front, unless you tap a different one.</li>
+        <li>If the prime is a <strong>factor</strong>, the monster's number is divided by it. Example: 60 → hit with 2 → 30.</li>
+        <li>If it's <strong>not a factor</strong>, the laser bounces off and the monster speeds up!</li>
+        <li>When a monster reaches 1 it's defeated, and you see its prime factorisation, e.g. <strong>60 = 2² × 3 × 5</strong>.</li>
+        <li>If a monster reaches the castle you lose a ❤️. Survive as many waves as you can!</li>
+      </ul>
+      <div class="field" style="max-width:320px">
+        <label for="speed">Speed</label>
+        <select id="speed">
+          <option value="0.7">Slow (more thinking time)</option>
+          <option value="1" selected>Normal</option>
+          <option value="1.4">Fast</option>
+        </select>
+      </div>
+      <p id="bestInfo" class="muted" style="margin:0"></p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Defend the castle!</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <span>Wave <span class="val" id="wave">1</span></span>
+      <span>Score <span class="val" id="score">0</span></span>
+      <span class="lives" id="lives" aria-label="Lives"></span>
+      <span class="spacer"></span>
+      <button type="button" id="pauseBtn">⏸ Pause</button>
+    </div>
+    <div class="layout">
+      <div>
+        <div class="panel field-wrap">
+          <svg id="field" class="field" viewBox="0 0 820 420" role="img" aria-label="Number monsters walking along a road to the castle">
+            <rect class="grass" x="0" y="0" width="820" height="420"/>
+            <path id="pathEdge" class="road-edge" d=""/>
+            <path id="path" class="road" d=""/>
+            <text class="castle" x="772" y="232">🏰</text>
+            <g id="enemies"></g>
+            <g id="fx"></g>
+            <text id="banner" class="banner" x="410" y="210"></text>
+          </svg>
+        </div>
+        <div class="panel">
+          <div class="primes" id="primes"></div>
+          <div id="msg" aria-live="polite"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Factorised</h2>
+        <ol id="log" class="log"></ol>
+        <p id="logEmpty" class="muted" style="margin:0">Defeat a monster to see its prime factorisation here.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🏰💥</div>
+      <h1>The castle has fallen!</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">Play again</button>
+    </div>
+    <div class="panel">
+      <h2>Prime factorisations you found</h2>
+      <ol id="overLog" class="log" style="max-height:none"></ol>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const ROAD = "M -40 90 L 190 90 Q 240 90 240 140 L 240 290 Q 240 340 290 340 L 470 340 Q 520 340 520 290 L 520 140 Q 520 90 570 90 L 650 90 Q 700 90 700 140 L 700 232 L 760 232";
+const PRIMES = [2, 3, 5, 7, 11, 13];
+const START_LIVES = 5;
+const BEST_KEY = "primeDefenceBest";
+const SUPERS = { 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const SVGNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+$("path").setAttribute("d", ROAD);
+$("pathEdge").setAttribute("d", ROAD);
+const path = $("path");
+const PATH_LEN = path.getTotalLength();
+
+let state = null;
+let rafId = null;
+
+function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
+function saveBest(b) { try { localStorage.setItem(BEST_KEY, JSON.stringify(b)); } catch { /* storage unavailable */ } }
+function showBest() {
+  const b = loadBest();
+  $("bestInfo").textContent = b ? `Your best on this device: ${b.score} points, reached wave ${b.wave}.` : "";
+}
+showBest();
+
+// "2² × 3 × 5" from a list of prime factors.
+function indexForm(factors) {
+  const counts = new Map();
+  for (const p of [...factors].sort((a, b) => a - b)) counts.set(p, (counts.get(p) || 0) + 1);
+  return [...counts].map(([p, k]) => k > 1 ? p + (SUPERS[k] || "^" + k) : String(p)).join(" × ");
+}
+
+// The primes available and the size of numbers in wave w.
+function waveRules(w) {
+  if (w === 1) return { primes: [2, 3, 5], min: 2, max: 2, limit: 50 };
+  if (w === 2) return { primes: [2, 3, 5, 7], min: 2, max: 3, limit: 100 };
+  if (w === 3) return { primes: [2, 3, 5, 7], min: 3, max: 4, limit: 250 };
+  if (w === 4) return { primes: [2, 3, 5, 7, 11], min: 3, max: 4, limit: 500 };
+  return { primes: PRIMES, min: 3, max: 5, limit: 1000 + 200 * (w - 5) };
+}
+
+function makeNumber(w) {
+  const r = waveRules(w);
+  for (;;) {
+    const k = randInt(r.min, r.max);
+    const fs = Array.from({ length: k }, () => pick(r.primes));
+    const n = fs.reduce((a, b) => a * b, 1);
+    if (n <= r.limit && n >= 4) return n;
+  }
+}
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", startGame);
+
+function startGame() {
+  state = {
+    speedMul: parseFloat($("speed").value),
+    wave: 0, score: 0, lives: START_LIVES,
+    enemies: [], toSpawn: 0, spawnTimer: 0, betweenWaves: 0,
+    targetId: null, nextId: 1, paused: false, last: null, log: [], typed: "", typedTimer: null,
+  };
+  $("enemies").innerHTML = "";
+  $("fx").innerHTML = "";
+  $("log").innerHTML = "";
+  $("logEmpty").hidden = false;
+  $("msg").textContent = "";
+  $("pauseBtn").textContent = "⏸ Pause";
+  buildButtons();
+  show("game");
+  nextWave();
+  cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+function buildButtons() {
+  const keys = { 2: "2", 3: "3", 5: "5", 7: "7", 11: "1 1", 13: "1 3" };
+  $("primes").innerHTML = "";
+  for (const p of PRIMES) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.p = p;
+    b.innerHTML = `${p}<span class="key">key ${keys[p]}</span>`;
+    b.addEventListener("click", () => fire(p));
+    $("primes").appendChild(b);
+  }
+}
+
+function nextWave() {
+  state.wave++;
+  state.toSpawn = 5 + state.wave;
+  state.spawnTimer = 0;
+  state.betweenWaves = 0;
+  $("wave").textContent = state.wave;
+  flashBanner(`Wave ${state.wave}`);
+  updateHud();
+}
+
+function flashBanner(text, ms = 1600) {
+  const b = $("banner");
+  b.textContent = text;
+  clearTimeout(flashBanner.t);
+  flashBanner.t = setTimeout(() => { b.textContent = ""; }, ms);
+}
+
+function spawnEnemy() {
+  const n = makeNumber(state.wave);
+  const g = el("g", { class: "enemy" }, $("enemies"));
+  const r = n >= 100 ? 28 : 25;
+  el("circle", { class: "ring", r: r + 7 }, g);
+  el("circle", { class: "body", r }, g);
+  const num = el("text", { class: "num", y: 0 }, g);
+  const trail = el("text", { class: "trail", y: r + 18 }, g);
+  const e = {
+    id: state.nextId++, start: n, n, factors: [], dist: 0,
+    speed: (26 + 3 * state.wave) * state.speedMul, boost: 0, g, num, trail, r,
+  };
+  g.addEventListener("pointerdown", (ev) => { ev.preventDefault(); state.targetId = e.id; render(); });
+  state.enemies.push(e);
+}
+
+function updateHud() {
+  $("score").textContent = state.score;
+  $("lives").textContent = "❤️".repeat(state.lives) + "🖤".repeat(Math.max(0, START_LIVES - state.lives));
+  // Grey out primes not used yet in this wave, as a gentle hint.
+  const used = waveRules(state.wave).primes;
+  document.querySelectorAll("#primes button").forEach((b) => b.classList.toggle("locked", !used.includes(+b.dataset.p)));
+}
+
+function target() {
+  const alive = state.enemies;
+  let t = alive.find((e) => e.id === state.targetId);
+  if (!t) {
+    t = alive.reduce((best, e) => (!best || e.dist > best.dist ? e : best), null);
+    state.targetId = t ? t.id : null;
+  }
+  return t;
+}
+
+function loop(now) {
+  rafId = requestAnimationFrame(loop);
+  if (!state || state.paused) { if (state) state.last = now; return; }
+  const dt = Math.min(0.05, state.last === null ? 0 : (now - state.last) / 1000);
+  state.last = now;
+
+  // Spawning
+  if (state.toSpawn > 0) {
+    state.spawnTimer -= dt;
+    if (state.spawnTimer <= 0) {
+      spawnEnemy();
+      state.toSpawn--;
+      // Keep monsters at least ~90 units apart on the road so they don't overlap.
+      const speed = (26 + 3 * state.wave) * state.speedMul;
+      state.spawnTimer = Math.max(Math.max(1.6, 3.4 - 0.2 * state.wave) / state.speedMul, 90 / speed);
+    }
+  } else if (!state.enemies.length) {
+    state.betweenWaves += dt;
+    if (state.betweenWaves > 0.01 && state.betweenWaves - dt <= 0.01) flashBanner(`Wave ${state.wave} cleared! ✨`, 2200);
+    if (state.betweenWaves > 2.6) nextWave();
+  }
+
+  // Movement
+  for (const e of [...state.enemies]) {
+    const mul = e.boost > 0 ? 1.8 : 1;
+    e.boost = Math.max(0, e.boost - dt);
+    e.dist += e.speed * mul * dt;
+    if (e.dist >= PATH_LEN) reachCastle(e);
+    if (state.over) return;
+  }
+  render();
+}
+
+function render() {
+  const t = target();
+  for (const e of state.enemies) {
+    const p = path.getPointAtLength(Math.min(e.dist, PATH_LEN));
+    e.g.setAttribute("transform", `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`);
+    e.g.classList.toggle("target", e === t);
+    e.g.classList.toggle("fast", e.boost > 0);
+    e.num.textContent = e.n;
+    e.num.setAttribute("font-size", String(e.n) .length >= 4 ? 17 : String(e.n).length === 3 ? 20 : 24);
+    e.trail.textContent = e.factors.length ? e.factors.map((f) => "÷" + f).join(" ") : "";
+  }
+}
+
+function removeEnemy(e) {
+  state.enemies = state.enemies.filter((x) => x !== e);
+  e.g.remove();
+  if (state.targetId === e.id) state.targetId = null;
+}
+
+function reachCastle(e) {
+  removeEnemy(e);
+  if (state.over) return;
+  state.lives--;
+  const rest = e.n > 1 ? ` (it still had ${e.n} left)` : "";
+  setMsg(`💔 ${e.start} reached the castle${rest}. ${e.start} = ${indexForm(fullFactors(e.start))}`, "bad");
+  updateHud();
+  if (state.lives <= 0) gameOver();
+}
+
+function fullFactors(n) {
+  const fs = [];
+  for (let p = 2; n > 1; p++) while (n % p === 0) { fs.push(p); n /= p; }
+  return fs;
+}
+
+function setMsg(text, kind) {
+  const m = $("msg");
+  m.textContent = text;
+  m.style.color = kind === "bad" ? "var(--bad)" : kind === "good" ? "var(--good)" : "var(--text)";
+}
+
+const CASTLE = { x: 760, y: 200 };
+function beam(e, ok) {
+  const p = path.getPointAtLength(Math.min(e.dist, PATH_LEN));
+  const l = el("line", { x1: CASTLE.x, y1: CASTLE.y, x2: p.x, y2: p.y, class: "beam" + (ok ? "" : " bad") }, $("fx"));
+  setTimeout(() => l.remove(), 160);
+  return p;
+}
+
+function floatText(x, y, text, bad) {
+  x = Math.max(110, Math.min(700, x));
+  y = Math.max(40, y);
+  const t = el("text", { x, y, class: "float" + (bad ? " bad" : "") }, $("fx"));
+  t.textContent = text;
+  let k = 0;
+  const step = () => {
+    k++;
+    t.setAttribute("y", y - k * 0.8);
+    t.setAttribute("opacity", Math.max(0, 1 - k / 70));
+    if (k < 70) requestAnimationFrame(step); else t.remove();
+  };
+  requestAnimationFrame(step);
+}
+
+function fire(p) {
+  if (!state || state.paused || state.over) return;
+  const e = target();
+  if (!e) { setMsg("No monsters to aim at right now.", ""); return; }
+  if (e.n % p === 0) {
+    const pt = beam(e, true);
+    const before = e.n;
+    e.n /= p;
+    e.factors.push(p);
+    state.score += 10;
+    if (e.n === 1) {
+      const text = `${e.start} = ${indexForm(e.factors)}`;
+      state.score += 5 * e.factors.length;
+      floatText(pt.x, pt.y - 30, text);
+      setMsg(`✅ Defeated! ${text}`, "good");
+      state.log.push(text);
+      const li = document.createElement("li");
+      li.textContent = text;
+      $("log").prepend(li);
+      $("logEmpty").hidden = true;
+      removeEnemy(e);
+    } else {
+      setMsg(`✅ ${before} ÷ ${p} = ${e.n}`, "good");
+    }
+  } else {
+    const pt = beam(e, false);
+    e.boost = 2;
+    floatText(pt.x, pt.y - 30, `${p} ✗`, true);
+    setMsg(`❌ ${p} is not a factor of ${e.n} (${e.n} ÷ ${p} isn't a whole number). It sped up!`, "bad");
+  }
+  updateHud();
+  render();
+}
+
+// Keyboard: 2, 3, 5, 7 fire at once; 1 waits for the next digit (11 or 13).
+document.addEventListener("keydown", (ev) => {
+  if ($("game").hidden || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (ev.key === " " || ev.key === "p") { ev.preventDefault(); togglePause(); return; }
+  if (!/^[0-9]$/.test(ev.key)) return;
+  ev.preventDefault();
+  clearTimeout(state.typedTimer);
+  if (state.typed === "1") {
+    state.typed = "";
+    const v = +("1" + ev.key);
+    if (v === 11 || v === 13) fire(v); else setMsg(`${v} isn't one of the primes you can fire.`, "bad");
+    return;
+  }
+  if (ev.key === "1") {
+    state.typed = "1";
+    setMsg("1… (press 1 for 11 or 3 for 13)", "");
+    state.typedTimer = setTimeout(() => { state.typed = ""; }, 1500);
+    return;
+  }
+  const v = +ev.key;
+  if (PRIMES.includes(v)) fire(v);
+  else setMsg(`${v} isn't prime! Use 2, 3, 5, 7, 11 or 13.`, "bad");
+});
+
+function togglePause() {
+  state.paused = !state.paused;
+  $("pauseBtn").textContent = state.paused ? "▶ Resume" : "⏸ Pause";
+  if (state.paused) flashBanner("Paused", 1e9); else flashBanner("", 1);
+}
+$("pauseBtn").addEventListener("click", togglePause);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && state && !state.paused && !$("game").hidden) togglePause();
+});
+
+function gameOver() {
+  state.over = true;
+  cancelAnimationFrame(rafId);
+  const best = loadBest();
+  const isBest = !best || state.score > best.score;
+  if (isBest) saveBest({ score: state.score, wave: state.wave });
+  $("overStats").textContent = `${state.score} points · reached wave ${state.wave} · ${state.log.length} monsters factorised`;
+  $("overText").textContent = isBest ? "🏅 New personal best on this device!" : `Your best is ${best.score} points. Try again!`;
+  $("overLog").innerHTML = "";
+  for (const t of state.log) {
+    const li = document.createElement("li");
+    li.textContent = t;
+    $("overLog").appendChild(li);
+  }
+  showBest();
+  show("over");
+}
+</script>
+</body>
+</html>

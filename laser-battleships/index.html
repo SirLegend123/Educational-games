@@ -156,7 +156,7 @@
     <div class="panel">
       <h2>How to play</h2>
       <ol class="rules">
-        <li>Each player secretly places <strong>two ships</strong> on a coordinate grid. Pass the device between turns and don't peek!</li>
+        <li>Each player secretly places <strong>two ships</strong> on a coordinate grid. Pass the device between turns and don't peek! (Or play solo against the computer.)</li>
         <li>On your turn, type a line such as <code>y = 2x + 1</code> and press <strong>Fire</strong>. Your laser follows that line across your opponent's grid.</li>
         <li>Every time a laser crosses a side of a ship, it makes a <strong>hole</strong>. Going right through a ship (in one side and out another) makes <strong>2 holes</strong>. Only touching a corner or running along an edge (a graze) makes <strong>1 hole</strong>.</li>
         <li>A ship <strong>sinks when it has 4 holes</strong>. Holes show up on the grid, so use them to aim your next laser!</li>
@@ -180,14 +180,28 @@
 
     <form id="setupForm" class="panel">
       <h2>Set up the game</h2>
+      <div class="field">
+        <label for="mode">Game mode</label>
+        <select id="mode">
+          <option value="two">Two players (pass and play)</option>
+          <option value="solo">Solo: you vs the computer</option>
+        </select>
+      </div>
       <div class="grid-2">
         <div class="field">
           <label for="name0">Player 1 name</label>
           <input type="text" id="name0" maxlength="20" placeholder="Player 1" autocomplete="off">
         </div>
-        <div class="field">
+        <div class="field" id="name1Field">
           <label for="name1">Player 2 name</label>
           <input type="text" id="name1" maxlength="20" placeholder="Player 2" autocomplete="off">
+        </div>
+        <div class="field" id="skillField" hidden>
+          <label for="skill">Computer skill</label>
+          <select id="skill">
+            <option value="easy">Easy: fires random lines</option>
+            <option value="clever" selected>Clever: aims near its hits</option>
+          </select>
         </div>
         <div class="field">
           <label for="gridSize">Grid size</label>
@@ -252,6 +266,7 @@
       </div>
       <div>
         <form id="fireForm" class="panel" autocomplete="off">
+          <div id="cpuShot" class="result" style="margin:0 0 14px" hidden></div>
           <label for="eq">Type your laser's equation</label>
           <div class="eq-input">
             <input type="text" id="eq" placeholder="y = 2x + 1" spellcheck="false" autocapitalize="off" inputmode="text">
@@ -312,6 +327,9 @@ let players = [];
 let current = 0;
 let placing = null;
 let shotFired = false;
+let solo = false;          // playing against the computer
+let skill = "clever";      // computer skill in solo mode
+let cpuShot = null;        // the computer's latest shot, shown to the player
 
 const $ = (id) => document.getElementById(id);
 
@@ -582,8 +600,11 @@ let lastSettings = null;
 
 $("setupForm").addEventListener("submit", (e) => {
   e.preventDefault();
+  const solo = $("mode").value === "solo";
   lastSettings = {
-    names: [$("name0").value.trim() || "Player 1", $("name1").value.trim() || "Player 2"],
+    solo,
+    skill: $("skill").value,
+    names: [$("name0").value.trim() || (solo ? "You" : "Player 1"), solo ? "Computer" : $("name1").value.trim() || "Player 2"],
     N: parseInt($("gridSize").value, 10),
     aim: $("aimPreview").checked,
   };
@@ -593,9 +614,18 @@ $("setupForm").addEventListener("submit", (e) => {
 function newGame(settings) {
   N = settings.N;
   aimPreview = settings.aim;
+  solo = settings.solo;
+  skill = settings.skill;
   players = settings.names.map((name) => ({ name, ships: [], shots: [] }));
+  if (solo) players[1].ships = randomFleet();
   startPlacement(0);
 }
+
+$("mode").addEventListener("change", () => {
+  const isSolo = $("mode").value === "solo";
+  $("name1Field").hidden = isSolo;
+  $("skillField").hidden = !isSolo;
+});
 
 /* ---------- Placement ---------- */
 
@@ -686,7 +716,10 @@ function randomFleet() {
 
 $("placeDone").addEventListener("click", () => {
   players[current].ships = placing.ships;
-  if (current === 0) {
+  if (solo) {
+    cpuShot = null;
+    startTurn(0);
+  } else if (current === 0) {
     handover(players[1].name,
       `${players[0].name}'s ships are hidden. Pass the device to ${players[1].name} to place their fleet.`,
       () => startPlacement(1));
@@ -720,8 +753,16 @@ function startTurn(p) {
   $("result").hidden = true;
   $("endTurnBtn").hidden = true;
   setReadingDefault();
+  const banner = $("cpuShot");
+  banner.hidden = !(solo && cpuShot);
+  if (solo && cpuShot) {
+    banner.className = "result " + cpuShot.result;
+    banner.innerHTML = "<strong></strong><p style=\"margin:.3em 0 0\"></p>";
+    banner.querySelector("strong").textContent = `🤖 The computer fired ${cpuShot.text}`;
+    banner.querySelector("p").textContent = cpuShot.msg;
+  }
   show("turn");
-  renderTurn(false);
+  renderTurn(false, null, solo && !!cpuShot);
   $("eq").focus();
 }
 
@@ -731,7 +772,7 @@ function setReadingDefault() {
   r.innerHTML = "Examples: <code>y = 3x − 2</code>, <code>y = −x + 4</code>, <code>y = 1/2x</code>, <code>y = 5</code>";
 }
 
-function renderTurn(animateLast, aim = null) {
+function renderTurn(animateLast, aim = null, animateFoe = false) {
   const me = players[current], foe = players[1 - current];
   const badge = $("turnBadge");
   badge.textContent = me.name;
@@ -750,6 +791,7 @@ function renderTurn(animateLast, aim = null) {
     ships: me.ships,
     shots: foe.shots.map((s) => ({ ...s, owner: 1 - current })),
     holes: me.ships.flatMap((s) => s.holes),
+    animateLast: animateFoe,
   });
   $("enemyFleet").innerHTML = foe.ships.map((s) =>
     `<li class="${s.sunk ? "down" : ""}">${s.name}: ${s.holes.length}/${HOLES_TO_SINK} holes</li>`).join("");
@@ -797,21 +839,7 @@ $("fireForm").addEventListener("submit", (e) => {
     return;
   }
 
-  const sunkNow = [], damage = [];
-  let newHoles = 0, touched = 0;
-  for (const ship of foe.ships) {
-    if (ship.sunk) continue;
-    const pts = holePoints(ship, p.m, p.c);
-    if (!pts.length) continue;
-    touched++;
-    const fresh = pts.filter((q) => !ship.holes.some((h) => Math.abs(h.x - q.x) < 1e-6 && Math.abs(h.y - q.y) < 1e-6));
-    ship.holes.push(...fresh);
-    newHoles += fresh.length;
-    if (fresh.length) damage.push({ ship, kind: pts.length === 2 ? "through" : "graze", count: fresh.length });
-    if (ship.holes.length >= HOLES_TO_SINK) { ship.sunk = true; sunkNow.push(ship); }
-  }
-  const result = sunkNow.length ? "sunk" : newHoles ? "hit" : "miss";
-  me.shots.push({ m: p.m, c: p.c, text, result, newHoles });
+  const { sunkNow, damage, newHoles, touched, result } = applyShot(me, foe, p.m, p.c);
   shotFired = true;
 
   $("eq").disabled = true;
@@ -850,6 +878,9 @@ $("fireForm").addEventListener("submit", (e) => {
   if (foe.ships.every((s) => s.sunk)) {
     endBtn.textContent = "See the result 🏆";
     endBtn.onclick = showWin;
+  } else if (solo) {
+    endBtn.textContent = "End turn: computer fires →";
+    endBtn.onclick = computerTurn;
   } else {
     endBtn.textContent = "End turn →";
     endBtn.onclick = () => handover(foe.name,
@@ -860,13 +891,82 @@ $("fireForm").addEventListener("submit", (e) => {
   endBtn.focus();
 });
 
+// Fire y = mx + c from shooter at target's fleet: make holes, sink ships,
+// and record the shot. Returns what happened.
+function applyShot(shooter, target, m, c) {
+  const sunkNow = [], damage = [];
+  let newHoles = 0, touched = 0;
+  for (const ship of target.ships) {
+    if (ship.sunk) continue;
+    const pts = holePoints(ship, m, c);
+    if (!pts.length) continue;
+    touched++;
+    const fresh = pts.filter((q) => !ship.holes.some((h) => Math.abs(h.x - q.x) < 1e-6 && Math.abs(h.y - q.y) < 1e-6));
+    ship.holes.push(...fresh);
+    newHoles += fresh.length;
+    if (fresh.length) damage.push({ ship, kind: pts.length === 2 ? "through" : "graze", count: fresh.length });
+    if (ship.holes.length >= HOLES_TO_SINK) { ship.sunk = true; sunkNow.push(ship); }
+  }
+  const result = sunkNow.length ? "sunk" : newHoles ? "hit" : "miss";
+  shooter.shots.push({ m, c, text: formatEq(m, c), result, newHoles });
+  return { sunkNow, damage, newHoles, touched, result };
+}
+
+/* ---------- Computer player (solo mode) ---------- */
+
+const CPU_GRADIENTS = [0, 1, -1, 2, -2, 3, -3, 1 / 2, -1 / 2, 1 / 3, -1 / 3, 3 / 2, -3 / 2];
+const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+// Choose a line the computer hasn't fired before. A clever computer aims
+// through points next to holes it has already made (which it can see).
+function chooseCpuLine() {
+  const cpu = players[1], you = players[0];
+  const fired = (m, c) => cpu.shots.some((s) => Math.abs(s.m - m) < EPS && Math.abs(s.c - c) < EPS);
+  const damaged = you.ships.filter((s) => !s.sunk && s.holes.length);
+  for (let tries = 0; tries < 2000; tries++) {
+    const m = pick(CPU_GRADIENTS);
+    let c;
+    if (skill === "clever" && damaged.length && tries < 1500) {
+      const h = pick(pick(damaged).holes);
+      const px = Math.round(h.x) + randInt(-1, 1), py = Math.round(h.y) + randInt(-1, 1);
+      c = py - m * px;
+    } else {
+      // A random line that passes through the grid.
+      const px = randInt(-N + 1, N - 1), py = randInt(-N + 1, N - 1);
+      c = py - m * px;
+    }
+    if (!fired(m, c)) return { m, c };
+  }
+  return { m: 0, c: randInt(-N, N) + Math.random() };
+}
+
+function computerTurn() {
+  preferDecimals = false;  // show the computer's gradients as fractions
+  const { m, c } = chooseCpuLine();
+  const { sunkNow, damage, result } = applyShot(players[1], players[0], m, c);
+  const text = formatEq(m, c);
+  let msg;
+  if (result === "sunk") msg = `💥 It sank your ${sunkNow.map((s) => s.name).join(" and your ")}!`;
+  else if (result === "hit") msg = `🎯 Hit! ${damage.map((d) => `Your ${d.ship.name} now has ${d.ship.holes.length}/${HOLES_TO_SINK} holes.`).join(" ")}`;
+  else msg = "🌊 It missed your ships.";
+  cpuShot = { text, msg, result };
+  current = 1;
+  if (players[0].ships.every((s) => s.sunk)) return showWin();
+  startTurn(0);
+}
+
 /* ---------- Win ---------- */
 
 function showWin() {
   const me = players[current], foe = players[1 - current];
-  $("winTitle").textContent = `${me.name} wins!`;
-  $("winText").textContent =
-    `${me.name} sank both of ${foe.name}'s ships with ${me.shots.length} laser${me.shots.length === 1 ? "" : "s"}.`;
+  $("winTitle").textContent = solo ? (current === 0 ? "You win! 🎉" : "The computer wins this time!") : `${me.name} wins!`;
+  const lasers = (n) => `${n} laser${n === 1 ? "" : "s"}`;
+  $("winText").textContent = !solo
+    ? `${me.name} sank both of ${foe.name}'s ships with ${lasers(me.shots.length)}.`
+    : current === 0
+      ? `You sank both of the computer's ships with ${lasers(me.shots.length)}. Can you do it in fewer next time?`
+      : `The computer sank both of your ships with ${lasers(me.shots.length)}. Its ships are shown below.`;
   for (let i = 0; i < 2; i++) {
     $("finalLabel" + i).textContent = `${players[i].name}'s fleet`;
     drawBoard($("finalBoard" + i), {
