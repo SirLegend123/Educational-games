@@ -127,6 +127,20 @@ const Lines = (() => {
     return { m, c, style };
   }
 
+  // Parse an nth term rule such as "4n + 3", "23 - 3n" or "nth term = 4n+3"
+  // into { a, b, style } meaning an + b, or { error }.
+  function parseNth(input) {
+    let s = input.trim();
+    if (!s) return { error: "Type a rule using n, for example 4n + 3" };
+    if (s.includes("=")) s = s.slice(s.lastIndexOf("=") + 1);
+    if (/[xy]/i.test(s)) return { error: "Use n for the position, for example 4n + 3" };
+    const r = parseLine("y=" + s.replace(/n/gi, "x"));
+    if (r.error) {
+      return { error: r.error.replace(/y = 2x \+ 1/g, "4n + 3").replace(/x/g, "n").replace(" for the grid", "") };
+    }
+    return { a: r.m, b: r.c, style: r.style };
+  }
+
   // A sentence explaining what m and c mean for this line.
   function explain(m, c, style) {
     let g;
@@ -221,5 +235,10 @@ const Lines = (() => {
   const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-  return { EPS, fraction, fmt, fmtP, lin, formatEq, parseNumber, parseLine, explain, clipLine, createGrid, randInt, pick };
+  const shuffle = (a) => {
+    for (let i = a.length - 1; i > 0; i--) { const j = randInt(0, i); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  };
+
+  return { EPS, fraction, fmt, fmtP, lin, formatEq, parseNumber, parseLine, parseNth, explain, clipLine, createGrid, randInt, pick, shuffle };
 })();

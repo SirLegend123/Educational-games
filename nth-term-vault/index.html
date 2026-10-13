@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nth Term Vault</title>
+<meta name="description" content="Crack ten safes by finding the nth term of linear sequences, then use the rule to find terms and positions.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .hud { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 12px; font-weight: 700; }
+  .progress { display: flex; gap: 6px; flex-wrap: wrap; }
+  .progress span { width: 26px; height: 26px; border-radius: 6px; background: var(--panel-2); display: grid; place-items: center; font-size: .75rem; font-weight: 700; color: var(--muted); }
+  .progress span.now { outline: 2px solid var(--p1); color: var(--text); }
+  .progress span.done { background: var(--gold); color: #2b1d00; }
+  .safe { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 640px) { .safe { grid-template-columns: 1fr; } .safe-door { margin: 0 auto; } }
+  .safe-door {
+    width: 150px; height: 150px; border-radius: 16px; position: relative;
+    background: linear-gradient(145deg, #64748b, #334155); box-shadow: inset 0 0 0 6px #1e293b, 0 6px 16px rgba(0,0,0,.4);
+    display: grid; place-items: center; transition: transform .8s ease;
+    transform-origin: left center; perspective: 600px;
+  }
+  .safe-door.open { transform: perspective(600px) rotateY(-70deg); }
+  @media (prefers-reduced-motion: reduce) { .safe-door { transition: none; } }
+  .dial { width: 70px; height: 70px; border-radius: 50%; background: radial-gradient(circle, #cbd5e1 30%, #94a3b8 31%, #475569 70%); border: 4px solid #1e293b; transition: transform .6s ease; }
+  .locks { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 1.1rem; }
+  .terms { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 4px; }
+  .term { min-width: 56px; padding: 8px 10px; text-align: center; border-radius: 10px; background: #0a1430; border: 1px solid var(--line); font-size: 1.4rem; font-weight: 800; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .term small { display: block; font-size: .7rem; color: var(--muted); font-weight: 600; font-family: system-ui, sans-serif; }
+  .dots { color: var(--muted); font-size: 1.4rem; }
+  .diffs { display: flex; gap: 6px; flex-wrap: wrap; padding-left: 34px; color: var(--gold); font-weight: 700; font-family: ui-monospace, Consolas, monospace; min-height: 1.4em; }
+  .diffs span { min-width: 56px; text-align: center; }
+  .lock-q { font-weight: 700; margin: 14px 0 8px; }
+  .answer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 1.3rem; font-family: ui-monospace, "SF Mono", Consolas, monospace; white-space: nowrap; }
+  .answer input { flex: 1 1 8em; min-width: 8em; max-width: 12em; font-size: 1.2rem; }
+  .answer button { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  ol.steps { margin: 6px 0 0; padding-left: 1.4em; }
+  ol.steps li { margin-bottom: 4px; }
+  .rules li { margin-bottom: 6px; }
+  table.results { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.results td, table.results th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  table.results td:nth-child(2), table.results td:nth-child(3) { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🔐 Nth Term Vault</h1>
+    <p class="muted">Ten safes stand between you and the treasure. Each safe shows a linear sequence. Crack the first lock by finding the <strong>nth term</strong>, then use your rule to open the second lock.</p>
+    <div class="panel">
+      <h2>Finding the nth term</h2>
+      <ol class="rules">
+        <li>Find the <strong>difference</strong> between terms. For 7, 11, 15, 19… it's +4, so the rule starts <strong>4n</strong> (the 4 times table: 4, 8, 12, 16…).</li>
+        <li>Compare the sequence with 4n: 7 is 3 more than 4, 11 is 3 more than 8… so the nth term is <strong>4n + 3</strong>.</li>
+        <li>Check: when n = 2, 4 × 2 + 3 = 11 ✓</li>
+      </ol>
+      <p class="muted" style="margin:0">Type rules like <code>4n + 3</code>, <code>5n − 2</code> or <code>20 − 3n</code>. Opening a lock first time earns a 🔑. A wrong answer gets a hint, and a second wrong answer shows the working.</p>
+      <p id="bestInfo" class="muted" style="margin:8px 0 0"></p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Start cracking</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <h1 style="margin:0;font-size:1.6rem" id="safeTitle">Safe 1</h1>
+      <span class="spacer"></span>
+      <span>🔑 × <span id="keys">0</span></span>
+    </div>
+    <div class="progress" id="progress" style="margin-bottom:12px" aria-hidden="true"></div>
+    <form id="form" class="panel" autocomplete="off">
+      <div class="safe">
+        <div class="safe-door" id="door"><div class="dial" id="dial"></div><div class="locks" id="locks">🔒🔒</div></div>
+        <div>
+          <p class="muted" id="level" style="margin-bottom:4px"></p>
+          <div id="sequence"></div>
+          <p class="lock-q" id="question"></p>
+          <div class="answer"><span id="prefix"></span><input type="text" id="ans" spellcheck="false" autocapitalize="off"> <button type="submit" class="go" id="checkBtn">Unlock</button></div>
+          <div id="msg" class="error" style="margin-top:8px"></div>
+          <div id="feedback" hidden></div>
+          <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next →</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">💰</div>
+      <h1>The vault is open!</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">Play again (new safes)</button>
+    </div>
+    <div class="panel">
+      <h2>Your safes</h2>
+      <table class="results"><thead><tr><th>Safe</th><th>Sequence</th><th>nth term</th><th>Keys</th></tr></thead><tbody id="resultRows"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script src="../shared/lines.js"></script>
+<script>
+"use strict";
+const { EPS, fmt, lin, parseNth, parseNumber, randInt, pick } = Lines;
+const SAFES = 10;
+const BEST_KEY = "nthTermVaultBest";
+const LEVELS = [
+  "Going up", "Going up", "Going up",
+  "Negative numbers", "Negative numbers", "Negative numbers",
+  "Going down", "Going down", "Decimal steps", "Boss safe: missing terms",
+];
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const num = (v) => fmt(v, "decimal");
+const rule = (a, b) => lin(a, b, "decimal", "n");
+const near = (x, y) => Math.abs(x - y) < 1e-9;
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+function makeSafe(i) {
+  let a, b;
+  if (i < 3) { a = randInt(2, 9); b = randInt(0, 9); }
+  else if (i < 6) { a = randInt(2, 12); b = -randInt(1, 9); }
+  else if (i < 8) { a = -randInt(2, 9); b = randInt(20, 45); }
+  else if (i === 8) { a = pick([0.5, 1.5, 2.5]); b = pick([0, 1, 2, 3, 0.5, -1]); }
+  else { a = pick([3, 4, 5, 6, 7, -3, -4]); b = randInt(-6, 12); }
+  const safe = { i, a, b, boss: i === 9 };
+  if (safe.boss) {
+    safe.p = randInt(2, 4);
+    safe.q = safe.p + randInt(3, 5);
+    safe.show = [safe.p, safe.q];
+  } else {
+    safe.show = [1, 2, 3, 4, 5];
+  }
+  // Second lock: find a term, or find which term has a given value.
+  if (i % 2 === 0) {
+    safe.k = pick([20, 30, 50, 100]);
+    safe.lock2 = "term";
+  } else {
+    safe.k = randInt(12, 60);
+    safe.lock2 = "which";
+  }
+  return safe;
+}
+
+const term = (s, n) => s.a * n + s.b;
+
+let safes, idx, lock, tries, keys, results;
+
+function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
+function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
+function showBest() {
+  const b = loadBest();
+  $("bestInfo").textContent = b !== null ? `Your best on this device: ${b} out of ${SAFES * 2} keys.` : "";
+}
+showBest();
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", startGame);
+
+function startGame() {
+  safes = Array.from({ length: SAFES }, (_, i) => makeSafe(i));
+  idx = 0;
+  keys = 0;
+  results = [];
+  show("game");
+  startSafe();
+}
+
+function startSafe() {
+  const s = safes[idx];
+  lock = 1;
+  $("door").classList.remove("open");
+  $("safeTitle").textContent = `Safe ${idx + 1} of ${SAFES}`;
+  $("level").textContent = LEVELS[idx];
+  results[idx] = { keys: 0 };
+  renderSequence(false);
+  renderProgress();
+  startLock();
+}
+
+function renderSequence(withDiffs) {
+  const s = safes[idx];
+  let html = `<div class="terms">`;
+  if (s.boss) {
+    html += s.show.map((n) => `<div class="term"><small>term ${n}</small>${num(term(s, n))}</div>`).join(`<span class="dots">…</span>`);
+    html += `</div>`;
+    if (withDiffs) html += `<div class="diffs" style="padding-left:0">From term ${s.p} to term ${s.q} is ${s.q - s.p} steps, and the value changes by ${num(term(s, s.q) - term(s, s.p))}.</div>`;
+  } else {
+    html += s.show.map((n) => `<div class="term"><small>n = ${n}</small>${num(term(s, n))}</div>`).join("") + `<span class="dots">…</span></div>`;
+    html += `<div class="diffs">${withDiffs ? s.show.slice(1).map(() => `<span>${s.a > 0 ? "+" : "−"}${num(Math.abs(s.a))}</span>`).join("") : ""}</div>`;
+  }
+  $("sequence").innerHTML = html;
+}
+
+function renderProgress() {
+  $("progress").innerHTML = Array.from({ length: SAFES }, (_, i) =>
+    `<span class="${i < idx ? "done" : i === idx ? "now" : ""}">${i + 1}</span>`).join("");
+  $("keys").textContent = keys;
+}
+
+function startLock() {
+  const s = safes[idx];
+  tries = 0;
+  $("ans").value = "";
+  $("ans").disabled = false;
+  $("checkBtn").disabled = false;
+  $("msg").textContent = "";
+  $("feedback").hidden = true;
+  $("nextBtn").hidden = true;
+  $("locks").textContent = lock === 1 ? "🔒🔒" : "🔓🔒";
+  if (lock === 1) {
+    $("question").textContent = "Lock 1: what is the nth term?";
+    $("prefix").textContent = "nth term =";
+    $("ans").placeholder = "e.g. 4n + 3";
+    $("ans").setAttribute("inputmode", "text");
+  } else if (s.lock2 === "term") {
+    $("question").innerHTML = `Lock 2: your rule is <strong>${rule(s.a, s.b)}</strong>. What is the <strong>${s.k}th term</strong>?`;
+    $("prefix").textContent = `term ${s.k} =`;
+    $("ans").placeholder = "a number";
+    $("ans").setAttribute("inputmode", "decimal");
+  } else {
+    $("question").innerHTML = `Lock 2: your rule is <strong>${rule(s.a, s.b)}</strong>. Which term is equal to <strong>${num(term(s, s.k))}</strong>?`;
+    $("prefix").textContent = "n =";
+    $("ans").placeholder = "position";
+    $("ans").setAttribute("inputmode", "numeric");
+  }
+  $("ans").focus();
+}
+
+// Why an nth term answer is wrong, as a hint (doesn't give the answer away).
+function ruleHint(s, r) {
+  const yours = s.show.map((n) => num(r.a * n + r.b));
+  const real = s.show.map((n) => num(term(s, n)));
+  const check = s.boss
+    ? `Your rule gives term ${s.p} = ${yours[0]} and term ${s.q} = ${yours[1]}, but they should be ${real[0]} and ${real[1]}.`
+    : `Your rule gives ${yours.join(", ")}… but the sequence is ${real.join(", ")}…`;
+  const an = rule(s.a, 0);
+  let tip;
+  if (near(r.a, s.a)) {
+    tip = s.boss
+      ? `The ${an} part is right. When n = ${s.p}, ${an} = ${num(s.a * s.p)}, but term ${s.p} is ${num(term(s, s.p))}. What do you need to add or subtract?`
+      : `The ${an} part is right. When n = 1, ${an} = ${num(s.a)}, but the first term is ${num(term(s, 1))}. What do you need to add or subtract?`;
+  } else if (near(r.a, 1) && near(r.b, s.a)) {
+    tip = `It looks like you wrote n + ${num(s.a)}. A sequence that goes up by ${num(s.a)} each time is linked to the ${num(s.a)} times table, so the rule starts ${an}.`;
+  } else if (near(r.a, -s.a)) {
+    tip = `Check the sign of the number in front of n. The sequence goes ${s.a > 0 ? "up" : "down"} each time, so it should be ${s.a > 0 ? "positive" : "negative"}.`;
+  } else if (!s.boss && near(r.a, term(s, 1))) {
+    tip = "The number in front of n is the difference between terms, not the first term.";
+  } else if (s.boss) {
+    tip = `First find the difference between consecutive terms: divide the change in value by the number of steps from term ${s.p} to term ${s.q}.`;
+  } else {
+    tip = "Start by finding the difference between one term and the next. That's the number in front of n.";
+  }
+  return `${check} ${tip}`;
+}
+
+function ruleWorking(s) {
+  const an = rule(s.a, 0);
+  const steps = [];
+  if (s.boss) {
+    const dv = term(s, s.q) - term(s, s.p);
+    steps.push(`From term ${s.p} to term ${s.q} is ${s.q - s.p} steps, and the value changes by ${num(dv)}, so the difference is ${num(dv)} ÷ ${s.q - s.p} = ${num(s.a)}. The rule starts ${an}.`);
+    steps.push(`When n = ${s.p}, ${an} = ${num(s.a * s.p)}. Term ${s.p} is ${num(term(s, s.p))}, so ${near(s.b, 0) ? "nothing needs adding" : `you need to ${s.b > 0 ? "add" : "subtract"} ${num(Math.abs(s.b))}`}.`);
+  } else {
+    steps.push(`The difference is ${s.a > 0 ? "+" : "−"}${num(Math.abs(s.a))} each time, so the rule starts ${an}.`);
+    steps.push(`${an} gives ${s.show.slice(0, 3).map((n) => num(s.a * n)).join(", ")}… but the sequence is ${s.show.slice(0, 3).map((n) => num(term(s, n))).join(", ")}…`);
+    steps.push(`Each term is ${near(s.b, 0) ? "exactly the same, so nothing is added" : `${num(Math.abs(s.b))} ${s.b > 0 ? "more" : "less"}`}.`);
+  }
+  steps.push(`nth term = ${rule(s.a, s.b)}`);
+  return steps;
+}
+
+const stepsHtml = (steps) => `<ol class="steps">${steps.map((t) => `<li>${esc(t)}</li>`).join("")}</ol>`;
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (!$("nextBtn").hidden) return;
+  const s = safes[idx];
+  let correct, hint, working, given;
+  if (lock === 1) {
+    const r = parseNth($("ans").value);
+    if (r.error) { $("msg").textContent = r.error; return; }
+    correct = near(r.a, s.a) && near(r.b, s.b);
+    if (!correct) hint = ruleHint(s, r);
+    working = ruleWorking(s);
+  } else {
+    const v = parseNumber($("ans").value);
+    if (isNaN(v)) { $("msg").textContent = "Type a number."; return; }
+    given = v;
+    if (s.lock2 === "term") {
+      correct = near(v, term(s, s.k));
+      hint = `Substitute n = ${s.k} into ${rule(s.a, s.b)}: work out ${num(s.a)} × ${s.k}, then ${s.b >= 0 ? "add" : "subtract"} ${num(Math.abs(s.b))}.`;
+      working = [`${num(s.a)} × ${s.k} = ${num(s.a * s.k)}`, `${num(s.a * s.k)} ${s.b >= 0 ? "+" : "−"} ${num(Math.abs(s.b))} = ${num(term(s, s.k))}`];
+    } else {
+      const target = term(s, s.k);
+      correct = near(v, s.k);
+      hint = `Set ${rule(s.a, s.b)} = ${num(target)} and solve for n. First ${s.b >= 0 ? `subtract ${num(s.b)} from` : `add ${num(-s.b)} to`} both sides.`;
+      working = [`${rule(s.a, s.b)} = ${num(target)}`, `${rule(s.a, 0)} = ${num(target - s.b)}`, `n = ${num(target - s.b)} ÷ ${num(s.a)} = ${s.k}`];
+    }
+  }
+  $("msg").textContent = "";
+  tries++;
+  const fb = $("feedback");
+  fb.hidden = false;
+  if (correct) {
+    if (tries === 1) { keys++; results[idx].keys++; }
+    fb.className = "feedback good";
+    fb.innerHTML = `<p><strong>🔓 Click! Lock ${lock} is open${tries === 1 ? ", and you earned a 🔑" : ""}.</strong></p><details><summary>See the working</summary>${stepsHtml(working)}</details>`;
+    $("dial").style.transform = `rotate(${lock * 180}deg)`;
+    return finishLock();
+  }
+  if (tries === 1) {
+    fb.className = "feedback bad";
+    fb.innerHTML = `<p><strong>🔒 The lock won't turn.</strong> ${esc(hint)}</p><p class="muted">Try again!</p>`;
+    if (lock === 1) renderSequence(true);
+    $("ans").select();
+    $("form").classList.remove("shake"); void $("form").offsetWidth; $("form").classList.add("shake");
+    return;
+  }
+  fb.className = "feedback info";
+  const answer = lock === 1 ? rule(s.a, s.b) : s.lock2 === "term" ? num(term(s, s.k)) : `n = ${s.k}`;
+  fb.innerHTML = `<p><strong>The safe-cracker helps you out.</strong> The answer is <strong>${esc(answer)}</strong>.</p>${stepsHtml(working)}`;
+  if (lock === 1) renderSequence(true);
+  finishLock();
+});
+
+function finishLock() {
+  $("ans").disabled = true;
+  $("checkBtn").disabled = true;
+  const s = safes[idx];
+  if (lock === 1) {
+    $("locks").textContent = "🔓🔒";
+    $("nextBtn").textContent = "Next lock →";
+  } else {
+    $("locks").textContent = "🔓🔓";
+    $("door").classList.add("open");
+    results[idx].rule = rule(s.a, s.b);
+    $("nextBtn").textContent = idx + 1 < SAFES ? "Next safe →" : "Open the vault 💰";
+  }
+  $("nextBtn").hidden = false;
+  $("keys").textContent = keys;
+  $("nextBtn").focus();
+}
+
+$("nextBtn").addEventListener("click", () => {
+  if (lock === 1) { lock = 2; startLock(); return; }
+  idx++;
+  if (idx < SAFES) startSafe();
+  else finish();
+});
+
+function finish() {
+  const best = loadBest();
+  const isBest = best === null || keys > best;
+  if (isBest) saveBest(keys);
+  $("overStats").textContent = `🔑 ${keys} / ${SAFES * 2} keys`;
+  $("overText").textContent = (isBest ? "🏅 New best on this device! " : `Your best is ${best}. `) +
+    (keys === SAFES * 2 ? "A perfect heist: every lock opened first time!" : "Play again for new safes and try to collect every key.");
+  $("resultRows").innerHTML = "";
+  safes.forEach((s, i) => {
+    const tr = document.createElement("tr");
+    const seq = s.boss ? `term ${s.p} = ${num(term(s, s.p))}, term ${s.q} = ${num(term(s, s.q))}` : s.show.map((n) => num(term(s, n))).join(", ") + ", …";
+    for (const v of [i + 1, seq, rule(s.a, s.b), "🔑".repeat(results[i].keys) || "–"]) {
+      const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+    }
+    $("resultRows").appendChild(tr);
+  });
+  showBest();
+  show("over");
+}
+</script>
+</body>
+</html>

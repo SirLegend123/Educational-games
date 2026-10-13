@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matchstick Patterns</title>
+<meta name="description" content="Predict how many matchsticks each pattern needs, find the nth term, and see why the rule works.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .hud { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 12px; font-weight: 700; }
+  .patterns { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  .pat { background: #0a1430; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; text-align: center; }
+  .pat svg { display: block; height: auto; max-width: 100%; }
+  .pat .cap { font-weight: 700; font-size: .95rem; }
+  .pat .cnt { color: var(--gold); font-weight: 700; font-size: .9rem; }
+  .pat.big { width: 100%; }
+  .pat.big svg { margin: 0 auto; }
+  .stick { stroke: #e0b07a; stroke-width: 6; stroke-linecap: round; }
+  .head { fill: #dc2626; }
+  .stick.g0 { stroke: #fb923c; }
+  .stick.ga { stroke: #60a5fa; }
+  .stick.gb { stroke: #4ade80; }
+  .plain .stick { stroke: #e0b07a; }
+  .legend { font-size: .95rem; margin-top: 10px; }
+  .legend .sw { display: inline-block; width: 22px; height: 6px; border-radius: 3px; vertical-align: middle; margin: 0 4px; }
+  .q { font-weight: 700; font-size: 1.1rem; margin-bottom: 10px; }
+  .answer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 1.2rem; }
+  .answer input { flex: 1 1 8em; min-width: 8em; max-width: 12em; font-size: 1.2rem; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .qdots { display: flex; gap: 6px; }
+  .qdots span { width: 14px; height: 14px; border-radius: 50%; background: var(--panel-2); }
+  .qdots span.done { background: var(--gold); }
+  .qdots span.now { outline: 2px solid var(--p1); }
+  ol.steps { margin: 6px 0 0; padding-left: 1.4em; }
+  .rules li { margin-bottom: 6px; }
+  table.results { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.results td, table.results th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🔥 Matchstick Patterns</h1>
+    <p class="muted">Each pattern is made from matchsticks and grows by the same amount every time, so it makes a <strong>linear sequence</strong>. Predict the next patterns, find the nth term, and discover <em>why</em> the rule works.</p>
+    <div class="panel">
+      <h2>How to play</h2>
+      <ul class="rules">
+        <li>There are 4 patterns, with 4 questions each: pattern 4, pattern 10, the nth term, and which pattern uses a given number of matchsticks.</li>
+        <li>Press <strong>🎨 Show how it grows</strong> to colour the matchsticks. You'll see the sticks every pattern starts with, and the block each new step adds.</li>
+        <li>Right first time earns a ⭐. A wrong answer gets a hint, and a second wrong answer shows the working.</li>
+      </ul>
+      <p id="bestInfo" class="muted" style="margin:0"></p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Light it up</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <h1 style="margin:0;font-size:1.6rem" id="title">Pattern A</h1>
+      <div class="qdots" id="qdots" aria-hidden="true"></div>
+      <span class="spacer"></span>
+      <span>⭐ <span id="stars">0</span></span>
+    </div>
+    <div class="panel">
+      <div class="patterns" id="patterns"></div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" id="structBtn">🎨 Show how it grows</button>
+      </div>
+      <div class="legend" id="legend" hidden></div>
+    </div>
+    <div class="panel" id="buildPanel" hidden>
+      <div class="pat big"><div class="cap" id="buildCap"></div><svg id="buildSvg"></svg><div class="cnt" id="buildCnt"></div></div>
+    </div>
+    <form id="form" class="panel" autocomplete="off">
+      <p class="q" id="question"></p>
+      <div class="answer"><span id="prefix"></span><input type="text" id="ans" spellcheck="false" autocapitalize="off"> <button type="submit" class="go" id="checkBtn">Check</button></div>
+      <div id="msg" class="error" style="margin-top:8px"></div>
+      <div id="feedback" hidden></div>
+      <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next →</button>
+    </form>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🔥⭐</div>
+      <h1>All patterns cracked!</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">Play again</button>
+    </div>
+    <div class="panel">
+      <h2>The rules you found</h2>
+      <table class="results"><thead><tr><th>Pattern</th><th>Matchsticks</th><th>nth term</th><th>Why</th></tr></thead><tbody id="resultRows"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script src="../shared/lines.js"></script>
+<script>
+"use strict";
+const { lin, parseNth, parseNumber, randInt, shuffle } = Lines;
+const BEST_KEY = "matchstickPatternsBest";
+const H = 0.87; // triangle height
+
+// Each pattern: a + b rule, and the matchsticks for pattern n as
+// segments { x1, y1, x2, y2, g }, where g = 0 for the starting sticks
+// and g = k for the sticks added by the kth step.
+const PATTERNS = [
+  {
+    name: "Squares in a row", unit: "square", a: 3, b: 1,
+    why: "Each new square needs 3 more matchsticks (top, bottom and right side). The left side of the first square is the extra 1.",
+    segs(n) {
+      const s = [{ x1: 0, y1: 0, x2: 0, y2: 1, g: 0 }];
+      for (let k = 1; k <= n; k++) s.push(
+        { x1: k - 1, y1: 0, x2: k, y2: 0, g: k }, { x1: k - 1, y1: 1, x2: k, y2: 1, g: k }, { x1: k, y1: 0, x2: k, y2: 1, g: k });
+      return s;
+    },
+  },
+  {
+    name: "Triangles in a row", unit: "triangle", a: 2, b: 1,
+    why: "Each new triangle needs 2 more matchsticks. The very first slanted stick is the extra 1.",
+    segs(n) {
+      const B = (i) => [i, 0], T = (i) => [i + 0.5, H];
+      const seg = (p, q, g) => ({ x1: p[0], y1: p[1], x2: q[0], y2: q[1], g });
+      const s = [seg(B(0), T(0), 0)];
+      for (let k = 1; k <= n; k++) {
+        const t = k - 1;
+        if (t % 2 === 0) s.push(seg(B(t / 2), B(t / 2 + 1), k), seg(T(t / 2), B(t / 2 + 1), k));
+        else s.push(seg(T((t - 1) / 2), T((t + 1) / 2), k), seg(B((t + 1) / 2), T((t + 1) / 2), k));
+      }
+      return s;
+    },
+  },
+  {
+    name: "A row of houses", unit: "house", a: 5, b: 1,
+    why: "Each new house needs 5 more matchsticks (floor, ceiling, right wall and 2 roof sticks). The left wall of the first house is the extra 1.",
+    segs(n) {
+      const s = [{ x1: 0, y1: 0, x2: 0, y2: 1, g: 0 }];
+      for (let k = 1; k <= n; k++) s.push(
+        { x1: k - 1, y1: 0, x2: k, y2: 0, g: k }, { x1: k - 1, y1: 1, x2: k, y2: 1, g: k }, { x1: k, y1: 0, x2: k, y2: 1, g: k },
+        { x1: k - 1, y1: 1, x2: k - 0.5, y2: 1 + H, g: k }, { x1: k - 0.5, y1: 1 + H, x2: k, y2: 1, g: k });
+      return s;
+    },
+  },
+  {
+    name: "Two rows of squares", unit: "column", a: 5, b: 2,
+    why: "Each new column needs 5 more matchsticks (3 across and 2 up). The 2 sticks on the left edge are the extra 2.",
+    segs(n) {
+      const s = [{ x1: 0, y1: 0, x2: 0, y2: 1, g: 0 }, { x1: 0, y1: 1, x2: 0, y2: 2, g: 0 }];
+      for (let k = 1; k <= n; k++) {
+        for (const y of [0, 1, 2]) s.push({ x1: k - 1, y1: y, x2: k, y2: y, g: k });
+        s.push({ x1: k, y1: 0, x2: k, y2: 1, g: k }, { x1: k, y1: 1, x2: k, y2: 2, g: k });
+      }
+      return s;
+    },
+  },
+];
+
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const count = (p, n) => p.a * n + p.b;
+const rule = (p) => lin(p.a, p.b, "decimal", "n");
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const SVGNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+// Draw pattern n into svg. upto limits how many sticks are shown (for building).
+function drawPattern(svg, p, n, { colour = false, upto = Infinity, unit = 42 } = {}) {
+  const segs = p.segs(n);
+  const maxX = Math.max(...segs.flatMap((s) => [s.x1, s.x2]));
+  const maxY = Math.max(...segs.flatMap((s) => [s.y1, s.y2]));
+  const pad = 10;
+  const w = maxX * unit + 2 * pad, h = maxY * unit + 2 * pad;
+  svg.innerHTML = "";
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.style.width = `${w}px`;
+  svg.classList.toggle("plain", !colour);
+  const X = (x) => pad + x * unit, Y = (y) => pad + (maxY - y) * unit;
+  segs.slice(0, upto).forEach((s) => {
+    const cls = s.g === 0 ? "g0" : s.g % 2 ? "ga" : "gb";
+    // Shorten each stick a little so the joins are visible.
+    const dx = s.x2 - s.x1, dy = s.y2 - s.y1, len = Math.hypot(dx, dy), t = 0.09 / len;
+    const x1 = X(s.x1 + dx * t), y1 = Y(s.y1 + dy * t), x2 = X(s.x2 - dx * t), y2 = Y(s.y2 - dy * t);
+    el("line", { x1, y1, x2, y2, class: "stick " + cls }, svg);
+    el("circle", { cx: x2, cy: y2, r: 4.2, class: "head" }, svg);
+  });
+  return segs.length;
+}
+
+let order, round, qi, tries, stars, colourOn, buildTimer, results;
+
+function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
+function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
+function showBest() {
+  const b = loadBest();
+  $("bestInfo").textContent = b !== null ? `Your best on this device: ${b} out of 16 stars.` : "";
+}
+showBest();
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", startGame);
+
+function startGame() {
+  order = shuffle([...PATTERNS]);
+  round = 0;
+  stars = 0;
+  results = [];
+  show("game");
+  startRound();
+}
+
+function startRound() {
+  const p = order[round];
+  p.target = randInt(15, 40);   // for "which pattern uses X matchsticks?"
+  qi = 0;
+  colourOn = false;
+  $("title").textContent = `${round + 1} of 4: ${p.name}`;
+  $("buildPanel").hidden = true;
+  renderPatterns();
+  startQuestion();
+}
+
+function renderPatterns() {
+  const p = order[round];
+  const box = $("patterns");
+  box.innerHTML = "";
+  for (let n = 1; n <= 3; n++) {
+    const d = document.createElement("div");
+    d.className = "pat";
+    d.innerHTML = `<div class="cap">Pattern ${n}</div>`;
+    const svg = el("svg", {}, d);
+    drawPattern(svg, p, n, { colour: colourOn });
+    const c = document.createElement("div");
+    c.className = "cnt";
+    c.textContent = `${count(p, n)} matchsticks`;
+    d.appendChild(c);
+    box.appendChild(d);
+  }
+  $("structBtn").textContent = colourOn ? "🪵 Plain matchsticks" : "🎨 Show how it grows";
+  const leg = $("legend");
+  leg.hidden = !colourOn;
+  leg.innerHTML = `<span class="sw" style="background:#fb923c"></span><strong>Orange:</strong> the ${p.b} matchstick${p.b > 1 ? "s" : ""} every pattern starts with.
+    <span class="sw" style="background:#60a5fa"></span><span class="sw" style="background:#4ade80"></span><strong>Blue and green:</strong> each new ${p.unit} adds a block of ${p.a}.`;
+  if (!$("buildPanel").hidden && $("buildSvg").dataset.n) drawPattern($("buildSvg"), p, +$("buildSvg").dataset.n, { colour: colourOn, unit: +$("buildSvg").dataset.unit });
+}
+
+$("structBtn").addEventListener("click", () => { colourOn = !colourOn; renderPatterns(); });
+
+function questionText(p) {
+  return [
+    { q: "How many matchsticks are in pattern 4?", prefix: "Pattern 4:", ph: "number" },
+    { q: "How many matchsticks are in pattern 10?", prefix: "Pattern 10:", ph: "number" },
+    { q: "Write the nth term: the number of matchsticks in pattern n.", prefix: "nth term =", ph: "e.g. 4n + 3" },
+    { q: `Which pattern uses exactly ${count(p, p.target)} matchsticks?`, prefix: "Pattern", ph: "number" },
+  ][qi];
+}
+
+function startQuestion() {
+  const p = order[round];
+  const t = questionText(p);
+  tries = 0;
+  $("question").textContent = `Question ${qi + 1}: ${t.q}`;
+  $("prefix").textContent = t.prefix;
+  $("ans").placeholder = t.ph;
+  $("ans").value = "";
+  $("ans").disabled = false;
+  $("checkBtn").disabled = false;
+  $("msg").textContent = "";
+  $("feedback").hidden = true;
+  $("nextBtn").hidden = true;
+  $("qdots").innerHTML = [0, 1, 2, 3].map((i) => `<span class="${i < qi ? "done" : i === qi ? "now" : ""}"></span>`).join("");
+  $("stars").textContent = stars;
+  $("ans").focus();
+}
+
+function hint(p) {
+  const r = rule(p);
+  return [
+    `Look at how the count changes: ${count(p, 1)} → ${count(p, 2)} → ${count(p, 3)}. How many matchsticks does each new pattern add?`,
+    `Pattern 1 has ${count(p, 1)} matchsticks and every new pattern adds ${p.a}. Pattern 10 is 9 steps on from pattern 1. (Or use the rule if you've spotted it!)`,
+    `The number of matchsticks goes up by ${p.a} each time, so the rule starts ${lin(p.a, 0, "decimal", "n")}. Compare ${lin(p.a, 0, "decimal", "n")} (${p.a}, ${2 * p.a}, ${3 * p.a}…) with the counts (${count(p, 1)}, ${count(p, 2)}, ${count(p, 3)}…). Try the 🎨 button too!`,
+    `Use the rule ${r} = ${count(p, p.target)}, and solve it to find n.`,
+  ][qi];
+}
+
+function working(p) {
+  const X = count(p, p.target);
+  return [
+    [`Each pattern adds ${p.a}: ${count(p, 3)} + ${p.a} = ${count(p, 4)}`],
+    [`Using the rule: ${p.a} × 10 + ${p.b} = ${count(p, 10)}`, `Or: pattern 1 has ${count(p, 1)}, plus 9 more steps of ${p.a}: ${count(p, 1)} + 9 × ${p.a} = ${count(p, 10)}`],
+    [`The count goes up by ${p.a}, so the rule starts ${p.a}n.`, `${p.a}n gives ${p.a}, ${2 * p.a}, ${3 * p.a}… The counts are ${count(p, 1)}, ${count(p, 2)}, ${count(p, 3)}…, which are ${p.b} more each time.`, `nth term = ${rule(p)}`, p.why],
+    [`${rule(p)} = ${X}`, `${p.a}n = ${X} − ${p.b} = ${X - p.b}`, `n = ${X - p.b} ÷ ${p.a} = ${p.target}`],
+  ][qi];
+}
+
+const stepsHtml = (steps) => `<ol class="steps">${steps.map((t) => `<li>${esc(t)}</li>`).join("")}</ol>`;
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (!$("nextBtn").hidden) return;
+  const p = order[round];
+  let correct, extra = "";
+  if (qi === 2) {
+    const r = parseNth($("ans").value);
+    if (r.error) { $("msg").textContent = r.error; return; }
+    correct = Math.abs(r.a - p.a) < 1e-9 && Math.abs(r.b - p.b) < 1e-9;
+    if (!correct) extra = `Your rule gives ${[1, 2, 3].map((n) => +(r.a * n + r.b).toFixed(4)).join(", ")}… but the patterns have ${[1, 2, 3].map((n) => count(p, n)).join(", ")}… `;
+  } else {
+    const v = parseNumber($("ans").value);
+    if (isNaN(v)) { $("msg").textContent = "Type a number."; return; }
+    const want = [count(p, 4), count(p, 10), null, p.target][qi];
+    correct = Math.abs(v - want) < 1e-9;
+  }
+  $("msg").textContent = "";
+  tries++;
+  const fb = $("feedback");
+  fb.hidden = false;
+  if (correct) {
+    if (tries === 1) stars++;
+    fb.className = "feedback good";
+    fb.innerHTML = `<p><strong>✅ Correct!${tries === 1 ? " +⭐" : ""}</strong></p>${stepsHtml(working(p))}`;
+    return finishQuestion();
+  }
+  if (tries === 1) {
+    fb.className = "feedback bad";
+    fb.innerHTML = `<p><strong>❌ Not quite.</strong> ${esc(extra)}${esc(hint(p))}</p><p class="muted">Try again!</p>`;
+    if (qi === 2 && !colourOn) { colourOn = true; renderPatterns(); }
+    $("ans").select();
+    return;
+  }
+  fb.className = "feedback info";
+  fb.innerHTML = `<p><strong>Here's how it works:</strong></p>${stepsHtml(working(p))}`;
+  finishQuestion();
+});
+
+function finishQuestion() {
+  const p = order[round];
+  $("ans").disabled = true;
+  $("checkBtn").disabled = true;
+  $("stars").textContent = stars;
+  if (qi === 0) build(4, 42);
+  if (qi === 1) build(10, 30);
+  if (qi === 2) results.push({ p });
+  const last = qi === 3;
+  $("nextBtn").textContent = !last ? "Next question →" : round < 3 ? "Next pattern →" : "Finish 🔥";
+  $("nextBtn").hidden = false;
+  $("nextBtn").focus();
+}
+
+// Animate building pattern n stick by stick, with a running count.
+function build(n, unit) {
+  const p = order[round];
+  const svg = $("buildSvg");
+  svg.dataset.n = n;
+  svg.dataset.unit = unit;
+  $("buildPanel").hidden = false;
+  $("buildCap").textContent = `Pattern ${n}`;
+  const total = count(p, n);
+  clearInterval(buildTimer);
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let shown = reduce ? total : 0;
+  const step = () => {
+    drawPattern(svg, p, n, { colour: colourOn, upto: shown, unit });
+    $("buildCnt").textContent = `${shown} matchstick${shown === 1 ? "" : "s"}`;
+  };
+  step();
+  if (reduce) return;
+  buildTimer = setInterval(() => {
+    shown++;
+    step();
+    if (shown >= total) clearInterval(buildTimer);
+  }, Math.max(25, 900 / total));
+}
+
+$("nextBtn").addEventListener("click", () => {
+  if (qi < 3) { qi++; startQuestion(); return; }
+  round++;
+  if (round < 4) startRound();
+  else finish();
+});
+
+function finish() {
+  clearInterval(buildTimer);
+  const best = loadBest();
+  const isBest = best === null || stars > best;
+  if (isBest) saveBest(stars);
+  $("overStats").textContent = `⭐ ${stars} / 16 stars`;
+  $("overText").textContent = (isBest ? "🏅 New best on this device! " : `Your best is ${best}. `) +
+    (stars === 16 ? "Perfect: every question right first time!" : "Play again: the patterns come in a different order.");
+  $("resultRows").innerHTML = "";
+  for (const { p } of results) {
+    const tr = document.createElement("tr");
+    for (const v of [p.name, `${count(p, 1)}, ${count(p, 2)}, ${count(p, 3)}, ${count(p, 4)}, …`, rule(p), p.why]) {
+      const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+    }
+    $("resultRows").appendChild(tr);
+  }
+  showBest();
+  show("over");
+}
+</script>
+</body>
+</html>

@@ -4,15 +4,20 @@ A collection of free browser-based educational games. Each game is a self-contai
 
 ## Games
 
-| Game | Topic | Players |
-| --- | --- | --- |
-| [Laser Battleships](laser-battleships/) | Straight-line graphs: gradient and y-intercept (`y = mx + c`) | 1 (vs computer) or 2 (pass and play) |
-| [Line Up](line-up/) | Simultaneous equations: where two lines cross | 2 (pass and play) |
-| [Parallel Parking](parallel-parking/) | Gradients of parallel and perpendicular lines | 1 |
-| [Equation Escape Room](equation-escape/) | Solving linear equations | 1 |
-| [Prime Factor Defence](prime-defence/) | Prime factorisation and index notation | 1 |
-| [Fraction Wall Race](fraction-wall/) | Adding fractions and equivalent fractions | 1 |
-| [Standard Form Space Race](standard-form-race/) | Writing, reading and comparing numbers in standard form | 1 |
+The home page groups the games by topic.
+
+| Topic | Game | Skill | Players |
+| --- | --- | --- | --- |
+| Number | [Prime Factor Defence](prime-defence/) | Prime factorisation and index notation | 1 |
+| Number | [Fraction Wall Race](fraction-wall/) | Adding fractions and equivalent fractions | 1 |
+| Number | [Standard Form Space Race](standard-form-race/) | Writing, reading and comparing numbers in standard form | 1 |
+| Equations | [Equation Escape Room](equation-escape/) | Solving linear equations | 1 |
+| Sequences | [Nth Term Vault](nth-term-vault/) | Finding and using the nth term of linear sequences | 1 |
+| Sequences | [Matchstick Patterns](matchstick-patterns/) | Linear sequences from patterns, and why the rule works | 1 |
+| Sequences | [Sequence Sniper](sequence-sniper/) | Deciding whether a number is a term of a sequence | 1 |
+| Straight-line graphs | [Laser Battleships](laser-battleships/) | Gradient and y-intercept (`y = mx + c`) | 1 (vs computer) or 2 (pass and play) |
+| Straight-line graphs | [Line Up](line-up/) | Simultaneous equations: where two lines cross | 2 (pass and play) |
+| Straight-line graphs | [Parallel Parking](parallel-parking/) | Gradients of parallel and perpendicular lines | 1 |
 
 ### Laser Battleships
 
@@ -51,6 +56,18 @@ Build a 10-row fraction wall against the clock. Each row starts with one or two 
 
 A rocket flies along a powers-of-ten track through 13 real objects, from a flu virus (1.2 × 10⁻⁷ m) to the Milky Way (9.5 × 10²⁰ m). Each stop is a mission of one of four kinds: **write it** in standard form, **read it** as an ordinary number, **fix it** (e.g. 0.8849 × 10⁴ → 8.849 × 10³), or **order** four objects by size. Missions are mixed differently each game. Answers are checked exactly, and the feedback spots common mistakes: the wrong sign on the power, a front number that isn't between 1 and 10, or the decimal point in the wrong place. A hint follows the first wrong answer, and the answer with working after the second. Fuel: 3 for right first time, 1 for right second time.
 
+### Nth Term Vault
+
+Ten safes, each with two locks. Lock 1: find the nth term of the sequence shown (e.g. `4n + 3`, `20 − 3n`). Lock 2 alternates between "find the 50th term" and "which term equals 185?". Safes progress from rising sequences, to ones with negative numbers, falling sequences, decimal steps, and a boss safe showing only two non-consecutive terms. Wrong rules get specific feedback: what the student's rule gives compared with the sequence, plus a spotted mistake such as writing `n + 4` instead of `4n`, the wrong sign, using the first term instead of the difference, or the wrong constant. A second wrong answer shows the full working.
+
+### Matchstick Patterns
+
+Four matchstick patterns (squares in a row, triangles, houses, and two rows of squares), each with four questions: how many sticks in pattern 4, pattern 10, the nth term, and which pattern uses a given number of sticks. Answers are built stick by stick on screen. The "🎨 Show how it grows" button colours the starting sticks (the `+ b`) and each repeated block (the `an`), which shows why the rule is, for example, `3n + 1`.
+
+### Sequence Sniper
+
+Five 30-second rounds, each with a rule such as `4n − 1`. Numbers fly across the screen, and the player taps only the terms of the sequence. Distractors include near misses and "term 0" traps. Every tap shows the working (`4n − 1 = 99 → 4n = 100 → n = 25 ✅`). Wrong taps cost a life, and missed terms are listed in an end-of-game review. Later rounds bring falling sequences and much larger numbers.
+
 ## Sharing the games (GitHub Pages)
 
 1. In this repository on GitHub, open **Settings → Pages**.
@@ -61,4 +78,4 @@ A rocket flies along a powers-of-ten track through 13 real objects, from a flu v
 
 Create a new folder (e.g. `my-new-game/`) containing an `index.html`, then add a card for it to the home page (`index.html`) and a row to the table above.
 
-Shared code lives in `shared/`: `theme.css` (colours, panels, buttons, grid styles) and `lines.js` (reading equations like `y = 2x + 1`, formatting fractions, and drawing coordinate grids). Line Up, Parallel Parking and Equation Escape Room use these; Laser Battleships is self-contained.
+Shared code lives in `shared/`: `theme.css` (colours, panels, buttons, grid styles) and `lines.js` (reading equations like `y = 2x + 1`, formatting fractions, and drawing coordinate grids). The newer games use these (`lines.js` also reads nth term rules like `4n + 3`); Laser Battleships is self-contained.

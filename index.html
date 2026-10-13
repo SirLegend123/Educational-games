@@ -5,17 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Educational Games</title>
 <style>
-  :root { --bg:#0b1630; --panel:#13224a; --text:#e8eefc; --muted:#a3b3da; --accent:#3ddcff; }
+  :root { --bg:#0b1630; --panel:#13224a; --panel-2:#1a2d5e; --text:#e8eefc; --muted:#a3b3da; --accent:#3ddcff; }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.5; }
-  main { max-width:900px; margin:0 auto; padding:32px 16px; }
+  main { max-width:960px; margin:0 auto; padding:32px 16px 48px; }
   h1 { font-size:clamp(1.8rem,5vw,2.6rem); margin:0 0 .3em; }
   p { color:var(--muted); }
-  .games { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; margin-top:24px; }
+  nav.topics { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 8px; }
+  nav.topics a { background:var(--panel-2); color:var(--text); text-decoration:none; padding:6px 14px; border-radius:999px; font-weight:600; font-size:.95rem; border:1px solid transparent; }
+  nav.topics a:hover, nav.topics a:focus-visible { border-color:var(--accent); outline:none; }
+  section.topic { margin-top:34px; scroll-margin-top:16px; }
+  section.topic h2 { font-size:1.5rem; margin:0 0 .15em; }
+  section.topic > p { margin:0 0 14px; }
+  .games { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
   a.card { display:block; background:var(--panel); border-radius:14px; padding:20px; color:var(--text); text-decoration:none; border:1px solid transparent; }
   a.card:hover, a.card:focus-visible { border-color:var(--accent); outline:none; }
   .card .icon { font-size:2.2rem; }
-  .card h2 { margin:.3em 0 .2em; font-size:1.25rem; }
+  .card h3 { margin:.3em 0 .2em; font-size:1.25rem; }
   .card p { margin:0 0 .6em; }
   .tags { font-size:.85rem; color:var(--accent); font-weight:600; }
 </style>
@@ -23,51 +31,101 @@
 <body>
 <main>
   <h1>🎓 Educational Games</h1>
-  <p>Free browser games for practising maths and more. No installation needed, just pick a game and play.</p>
-  <div class="games">
-    <a class="card" href="laser-battleships/">
-      <div class="icon">⚡</div>
-      <h2>Laser Battleships</h2>
-      <p>Hide ships on a coordinate grid and sink them by firing lasers along straight lines, <em>y = mx + c</em>. Play a friend or the computer.</p>
-      <div class="tags">Maths · Gradient &amp; y-intercept · 1 or 2 players</div>
-    </a>
-    <a class="card" href="line-up/">
-      <div class="icon">✳️</div>
-      <h2>Line Up</h2>
-      <p>Draw lines to claim stars, steal your opponent's stars by crossing their lines, and work out exactly where lines meet.</p>
-      <div class="tags">Maths · Simultaneous equations · 2 players</div>
-    </a>
-    <a class="card" href="parallel-parking/">
-      <div class="icon">🚗</div>
-      <h2>Parallel Parking</h2>
-      <p>Park your car on a line parallel or perpendicular to the road, through the parking spot. 10 levels to earn stars.</p>
-      <div class="tags">Maths · Parallel &amp; perpendicular gradients · 1 player</div>
-    </a>
-    <a class="card" href="equation-escape/">
-      <div class="icon">🚪</div>
-      <h2>Equation Escape Room</h2>
-      <p>Solve an equation to unlock each door. Ten rooms, from one-step equations to brackets on both sides. Beat the clock!</p>
-      <div class="tags">Maths · Solving linear equations · 1 player</div>
-    </a>
-    <a class="card" href="prime-defence/">
-      <div class="icon">🏰</div>
-      <h2>Prime Factor Defence</h2>
-      <p>Number monsters march on your castle. Blast them with primes until they're divided down to 1, and see their prime factorisation.</p>
-      <div class="tags">Maths · Prime factors &amp; index notation · 1 player</div>
-    </a>
-    <a class="card" href="fraction-wall/">
-      <div class="icon">🧱</div>
-      <h2>Fraction Wall Race</h2>
-      <p>Race the clock to build a fraction wall where every row adds up to exactly 1. No gaps, no overhang!</p>
-      <div class="tags">Maths · Adding &amp; equivalent fractions · 1 player</div>
-    </a>
-    <a class="card" href="standard-form-race/">
-      <div class="icon">🚀</div>
-      <h2>Standard Form Space Race</h2>
-      <p>Fly from the size of an atom to the size of the galaxy. Write, read, fix and order real sizes in standard form to fuel your rocket.</p>
-      <div class="tags">Maths · Standard form · 1 player</div>
-    </a>
-  </div>
+  <p>Free browser games for practising maths. No installation needed, just pick a topic and play.</p>
+  <nav class="topics" aria-label="Topics">
+    <a href="#number">🔢 Number</a>
+    <a href="#equations">⚖️ Equations</a>
+    <a href="#sequences">🔁 Sequences</a>
+    <a href="#graphs">📈 Straight-line graphs</a>
+  </nav>
+
+  <section class="topic" id="number">
+    <h2>🔢 Number</h2>
+    <p>Prime factors, fractions and standard form.</p>
+    <div class="games">
+      <a class="card" href="prime-defence/">
+        <div class="icon">🏰</div>
+        <h3>Prime Factor Defence</h3>
+        <p>Number monsters march on your castle. Blast them with primes until they're divided down to 1, and see their prime factorisation.</p>
+        <div class="tags">Prime factors &amp; index notation · 1 player</div>
+      </a>
+      <a class="card" href="fraction-wall/">
+        <div class="icon">🧱</div>
+        <h3>Fraction Wall Race</h3>
+        <p>Race the clock to build a fraction wall where every row adds up to exactly 1. No gaps, no overhang!</p>
+        <div class="tags">Adding &amp; equivalent fractions · 1 player</div>
+      </a>
+      <a class="card" href="standard-form-race/">
+        <div class="icon">🚀</div>
+        <h3>Standard Form Space Race</h3>
+        <p>Fly from the size of an atom to the size of the galaxy. Write, read, fix and order real sizes in standard form to fuel your rocket.</p>
+        <div class="tags">Standard form · 1 player</div>
+      </a>
+    </div>
+  </section>
+
+  <section class="topic" id="equations">
+    <h2>⚖️ Equations</h2>
+    <p>Solving linear equations.</p>
+    <div class="games">
+      <a class="card" href="equation-escape/">
+        <div class="icon">🚪</div>
+        <h3>Equation Escape Room</h3>
+        <p>Solve an equation to unlock each door. Ten rooms, from one-step equations to brackets on both sides. Beat the clock!</p>
+        <div class="tags">Solving linear equations · 1 player</div>
+      </a>
+    </div>
+  </section>
+
+  <section class="topic" id="sequences">
+    <h2>🔁 Sequences</h2>
+    <p>Linear sequences: the nth term, using it, and where it comes from.</p>
+    <div class="games">
+      <a class="card" href="nth-term-vault/">
+        <div class="icon">🔐</div>
+        <h3>Nth Term Vault</h3>
+        <p>Crack ten safes by finding the nth term of a sequence, then use your rule to find terms and positions.</p>
+        <div class="tags">Finding &amp; using the nth term · 1 player</div>
+      </a>
+      <a class="card" href="matchstick-patterns/">
+        <div class="icon">🔥</div>
+        <h3>Matchstick Patterns</h3>
+        <p>Predict how many matchsticks each pattern needs, find the rule, and see why it works by colouring how the pattern grows.</p>
+        <div class="tags">Sequences from patterns · 1 player</div>
+      </a>
+      <a class="card" href="sequence-sniper/">
+        <div class="icon">🎯</div>
+        <h3>Sequence Sniper</h3>
+        <p>Numbers fly past. Shoot only the ones that are terms of the sequence. Is 99 in 4n − 1? Think fast!</p>
+        <div class="tags">Is it a term? · 1 player</div>
+      </a>
+    </div>
+  </section>
+
+  <section class="topic" id="graphs">
+    <h2>📈 Straight-line graphs</h2>
+    <p>Gradient, y-intercept, parallel and perpendicular lines, and where lines cross.</p>
+    <div class="games">
+      <a class="card" href="laser-battleships/">
+        <div class="icon">⚡</div>
+        <h3>Laser Battleships</h3>
+        <p>Hide ships on a coordinate grid and sink them by firing lasers along straight lines, <em>y = mx + c</em>. Play a friend or the computer.</p>
+        <div class="tags">Gradient &amp; y-intercept · 1 or 2 players</div>
+      </a>
+      <a class="card" href="line-up/">
+        <div class="icon">✳️</div>
+        <h3>Line Up</h3>
+        <p>Draw lines to claim stars, steal your opponent's stars by crossing their lines, and work out exactly where lines meet.</p>
+        <div class="tags">Simultaneous equations · 2 players</div>
+      </a>
+      <a class="card" href="parallel-parking/">
+        <div class="icon">🚗</div>
+        <h3>Parallel Parking</h3>
+        <p>Park your car on a line parallel or perpendicular to the road, through the parking spot. 10 levels to earn stars.</p>
+        <div class="tags">Parallel &amp; perpendicular gradients · 1 player</div>
+      </a>
+    </div>
+  </section>
 </main>
 </body>
 </html>

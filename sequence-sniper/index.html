@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sequence Sniper</title>
+<meta name="description" content="Numbers fly past: tap only the ones that are terms of the sequence. Practise deciding whether a number is in a linear sequence.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .hud { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 10px; font-weight: 700; }
+  .hud .val { font-variant-numeric: tabular-nums; }
+  .rulebar { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; margin-bottom: 10px; }
+  .rulebar .rule { font-size: 1.5rem; font-weight: 800; color: var(--gold); font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .field {
+    position: relative; height: 380px; overflow: hidden; border-radius: 12px; user-select: none; touch-action: manipulation;
+    background: radial-gradient(ellipse at 30% 20%, #1c2f63, #0a1430 70%);
+  }
+  @media (max-width: 600px) { .field { height: 330px; } }
+  .field::before {
+    content: ""; position: absolute; inset: 0; opacity: .5; pointer-events: none;
+    background-image: radial-gradient(1.5px 1.5px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 70% 60%, #fff, transparent),
+      radial-gradient(1.5px 1.5px at 40% 80%, #fff, transparent), radial-gradient(1px 1px at 85% 15%, #fff, transparent),
+      radial-gradient(1px 1px at 10% 70%, #fff, transparent), radial-gradient(1.5px 1.5px at 55% 40%, #fff, transparent);
+  }
+  .target {
+    position: absolute; left: 0; top: 0; min-width: 68px; height: 54px; padding: 0 12px; border-radius: 999px;
+    font-size: 1.35rem; font-weight: 800; background: #1e3a8a; color: #fff; border: 2px solid #60a5fa;
+    box-shadow: 0 0 12px rgba(96, 165, 250, .5); will-change: transform; font-variant-numeric: tabular-nums;
+  }
+  .target:hover { filter: brightness(1.25); }
+  .target.hit { background: var(--good); border-color: #bbf7d0; color: #052e16; pointer-events: none; transition: opacity .5s, transform .5s; opacity: 0; }
+  .target.wrong { background: var(--bad); border-color: #fecaca; pointer-events: none; transition: opacity .7s; opacity: 0; }
+  .crosshair { position: absolute; inset: 0; pointer-events: none; }
+  .overlay { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(11, 22, 48, .82); text-align: center; padding: 16px; z-index: 5; }
+  .overlay .box { max-width: 520px; }
+  .overlay .rule { font-size: 2rem; }
+  .terms-preview { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 1.2rem; margin: 8px 0 14px; }
+  #msg { min-height: 3em; margin-top: 10px; font-weight: 600; }
+  .timer-bar { height: 8px; border-radius: 999px; background: var(--panel-2); overflow: hidden; flex: 1; min-width: 120px; max-width: 300px; }
+  .timer-bar > div { height: 100%; background: var(--p1); width: 100%; }
+  ol.review { margin: 0; padding-left: 1.6em; }
+  ol.review li { margin-bottom: 6px; }
+  .rules li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🎯 Sequence Sniper</h1>
+    <p class="muted">Numbers are flying past! Each round has a rule like <strong>4n − 1</strong>. Tap only the numbers that are <strong>terms of that sequence</strong>.</p>
+    <div class="panel">
+      <h2>Is it in the sequence?</h2>
+      <ul class="rules">
+        <li>Set the rule equal to the number and solve. For 4n − 1 and 99: 4n − 1 = 99, so 4n = 100 and n = 25. That's a whole number, so <strong>99 is the 25th term</strong> ✅</li>
+        <li>For 150: 4n − 1 = 150, so 4n = 151 and n = 37.75. That's not a whole number, so <strong>150 is not in the sequence</strong> ❌</li>
+        <li>n must be a positive whole number (1, 2, 3…). For 4n − 1, −1 would be "term 0", which doesn't exist ❌</li>
+      </ul>
+      <ul class="rules">
+        <li>Tapping a term: <strong>+10</strong> (+5 bonus for terms beyond the 20th). Tapping a number that isn't a term costs a ❤️. You have 3.</li>
+        <li>5 rounds of 30 seconds, with a new rule each round. Terms that fly past untouched count as missed.</li>
+      </ul>
+      <div style="max-width:320px">
+        <label for="speed">Speed</label>
+        <select id="speed"><option value="0.75">Slow</option><option value="1" selected>Normal</option><option value="1.35">Fast</option></select>
+      </div>
+      <p id="bestInfo" class="muted" style="margin:10px 0 0"></p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Start sniping</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <span>Round <span class="val" id="roundNum">1</span> of 5</span>
+      <span>Score <span class="val" id="score">0</span></span>
+      <span id="lives" aria-label="Lives"></span>
+      <div class="timer-bar" aria-hidden="true"><div id="timeBar"></div></div>
+      <button type="button" id="pauseBtn">⏸ Pause</button>
+    </div>
+    <div class="panel" style="padding:12px">
+      <div class="rulebar"><span class="muted">Shoot the terms of</span> <span class="rule" id="ruleText"></span> <span class="muted" id="ruleHint"></span></div>
+      <div class="field" id="field">
+        <div class="overlay" id="overlay"><div class="box" id="overlayBox"></div></div>
+      </div>
+      <div id="msg" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🎯</div>
+      <h1 id="overTitle">Game over</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">Play again</button>
+    </div>
+    <div class="panel">
+      <h2>Check your mistakes</h2>
+      <ol id="review" class="review"></ol>
+      <p id="reviewEmpty" class="muted" style="margin:0">No mistakes and nothing missed. Brilliant!</p>
+    </div>
+  </section>
+</main>
+
+<script src="../shared/lines.js"></script>
+<script>
+"use strict";
+const { lin, randInt } = Lines;
+const ROUNDS = 5, ROUND_TIME = 30, LIVES = 3;
+const BEST_KEY = "sequenceSniperBest";
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const rule = (r) => lin(r.a, r.b, "decimal", "n");
+const sgn = (v) => (v < 0 ? "−" + -v : String(v));
+
+function makeRule(i) {
+  if (i === 0) return { a: randInt(2, 4), b: randInt(0, 5), maxN: 12 };
+  if (i === 1) return { a: randInt(3, 7), b: -randInt(1, 5), maxN: 20 };
+  if (i === 2) return { a: randInt(5, 11), b: randInt(-9, 9), maxN: 30 };
+  if (i === 3) return { a: -randInt(2, 6), b: randInt(40, 70), maxN: 25 };
+  return { a: randInt(6, 15), b: randInt(-12, 12), maxN: 100 };
+}
+
+const term = (r, n) => r.a * n + r.b;
+// Position of value v in the sequence (may not be a whole number).
+const position = (r, v) => (v - r.b) / r.a;
+const isTerm = (r, v) => { const n = position(r, v); return Number.isInteger(n) && n >= 1; };
+
+// Why v is or isn't a term, as a short explanation.
+function explain(r, v) {
+  const n = position(r, v);
+  const solve = `${rule(r)} = ${sgn(v)} → ${lin(r.a, 0, "decimal", "n")} = ${sgn(v - r.b)} → n = ${+(n.toFixed(2))}`;
+  if (isTerm(r, v)) return `${sgn(v)} is term ${n}: ${solve} ✅`;
+  if (Number.isInteger(n)) return `${sgn(v)} is not a term: ${solve}, but positions start at n = 1 ❌`;
+  return `${sgn(v)} is not a term: ${solve}, which isn't a whole number ❌`;
+}
+
+function makeNumber(r) {
+  const roll = Math.random();
+  if (roll < 0.45) return term(r, randInt(1, r.maxN));
+  if (roll < 0.53) return term(r, randInt(-1, 0));          // trap: "term 0" or "term −1"
+  for (;;) {
+    const off = randInt(1, Math.max(1, Math.abs(r.a) - 1)) * (Math.random() < 0.5 ? -1 : 1);
+    const v = term(r, randInt(1, r.maxN)) + off;
+    if (!isTerm(r, v)) return v;
+  }
+}
+
+let st = null, raf = null;
+
+function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
+function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
+function showBest() {
+  const b = loadBest();
+  $("bestInfo").textContent = b !== null ? `Your best score on this device: ${b}.` : "";
+}
+showBest();
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", startGame);
+
+function startGame() {
+  st = {
+    speedMul: parseFloat($("speed").value), round: 0, score: 0, lives: LIVES,
+    hits: 0, wrong: 0, missed: 0, mistakes: [], targets: [], playing: false, paused: false, over: false,
+  };
+  show("game");
+  hud();
+  roundIntro();
+}
+
+function hud() {
+  $("score").textContent = st.score;
+  $("roundNum").textContent = st.round + 1;
+  $("lives").textContent = "❤️".repeat(st.lives) + "🖤".repeat(LIVES - st.lives);
+}
+
+function clearTargets() {
+  st.targets.forEach((t) => t.el.remove());
+  st.targets = [];
+}
+
+function roundIntro() {
+  st.rule = makeRule(st.round);
+  st.playing = false;
+  clearTargets();
+  const r = st.rule;
+  $("ruleText").textContent = rule(r);
+  $("ruleHint").textContent = "";
+  $("msg").textContent = "";
+  $("timeBar").style.width = "100%";
+  hud();
+  const first = [1, 2, 3, 4, 5].map((n) => sgn(term(r, n))).join(", ");
+  $("overlayBox").innerHTML = `<p class="muted" style="margin:0">Round ${st.round + 1} of ${ROUNDS}${st.round === 4 ? ": big numbers!" : st.round === 3 ? ": going down!" : ""}</p>
+    <p class="rule" style="color:var(--gold);font-weight:800;margin:6px 0">${rule(r)}</p>
+    <p class="terms-preview">${first}, …</p>
+    <p class="muted">Tap only the numbers that are terms of this sequence.</p>
+    <button type="button" class="primary" id="goBtn">Go! 🎯</button>`;
+  $("overlay").hidden = false;
+  $("goBtn").addEventListener("click", beginRound);
+  $("goBtn").focus();
+}
+
+function beginRound() {
+  $("overlay").hidden = true;
+  $("ruleHint").textContent = `(${[1, 2, 3].map((n) => sgn(term(st.rule, n))).join(", ")}, …)`;
+  st.playing = true;
+  st.timeLeft = ROUND_TIME;
+  st.spawnIn = 0;
+  st.last = null;
+  st.roundStats = { hits: 0, wrong: 0, missed: 0 };
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(loop);
+}
+
+function spawn() {
+  const field = $("field");
+  const H = field.clientHeight, W = field.clientWidth;
+  const lanes = Math.max(4, Math.floor((H - 20) / 64));
+  // Pick a lane that isn't busy near the right-hand edge.
+  const busy = new Set(st.targets.filter((t) => t.x > W - 160).map((t) => t.lane));
+  const free = [...Array(lanes).keys()].filter((l) => !busy.has(l));
+  if (!free.length) return;
+  const lane = free[randInt(0, free.length - 1)];
+  let v;
+  do v = makeNumber(st.rule); while (st.targets.some((t) => t.v === v));
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "target";
+  b.textContent = sgn(v);
+  field.appendChild(b);
+  const t = { v, el: b, x: W + 10, y: 10 + lane * ((H - 74) / (lanes - 1)), lane, speed: (75 + 12 * st.round) * st.speedMul * (0.85 + Math.random() * 0.3), done: false };
+  b.addEventListener("pointerdown", (e) => { e.preventDefault(); shoot(t); });
+  b.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); shoot(t); } });
+  st.targets.push(t);
+  place(t);
+}
+
+const place = (t) => { t.el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px)`; };
+
+function loop(now) {
+  raf = requestAnimationFrame(loop);
+  if (!st.playing || st.paused) { st.last = now; return; }
+  const dt = Math.min(0.05, st.last === null ? 0 : (now - st.last) / 1000);
+  st.last = now;
+  st.timeLeft -= dt;
+  $("timeBar").style.width = `${Math.max(0, st.timeLeft / ROUND_TIME) * 100}%`;
+  st.spawnIn -= dt;
+  if (st.spawnIn <= 0 && st.timeLeft > 2) {
+    spawn();
+    st.spawnIn = (1.05 - 0.05 * st.round) / st.speedMul;
+  }
+  for (const t of [...st.targets]) {
+    if (t.done) continue;
+    t.x -= t.speed * dt;
+    place(t);
+    if (t.x < -t.el.offsetWidth - 10) {
+      if (isTerm(st.rule, t.v)) {
+        st.missed++;
+        st.roundStats.missed++;
+        st.mistakes.push({ kind: "missed", text: `Missed in ${rule(st.rule)}: ${explain(st.rule, t.v)}` });
+        setMsg(`👀 Missed one: ${explain(st.rule, t.v)}`, "");
+      }
+      remove(t);
+    }
+  }
+  if (st.timeLeft <= 0) endRound();
+}
+
+function remove(t) {
+  t.done = true;
+  t.el.remove();
+  st.targets = st.targets.filter((x) => x !== t);
+}
+
+function setMsg(text, kind) {
+  const m = $("msg");
+  m.textContent = text;
+  m.style.color = kind === "bad" ? "var(--bad)" : kind === "good" ? "var(--good)" : "var(--muted)";
+}
+
+function shoot(t) {
+  if (!st.playing || st.paused || t.done) return;
+  t.done = true;
+  const r = st.rule;
+  if (isTerm(r, t.v)) {
+    const n = position(r, t.v);
+    const pts = 10 + (n > 20 ? 5 : 0);
+    st.score += pts;
+    st.hits++;
+    st.roundStats.hits++;
+    t.el.classList.add("hit");
+    t.el.textContent = `n = ${n}`;
+    setMsg(`🎯 +${pts}: ${explain(r, t.v)}`, "good");
+  } else {
+    st.lives--;
+    st.wrong++;
+    st.roundStats.wrong++;
+    st.mistakes.push({ kind: "wrong", text: `Shot in ${rule(r)}: ${explain(r, t.v)}` });
+    t.el.classList.add("wrong");
+    setMsg(`💥 ${explain(r, t.v)}`, "bad");
+  }
+  setTimeout(() => remove(t), 600);
+  hud();
+  if (st.lives <= 0) { st.playing = false; setTimeout(gameOver, 900); }
+}
+
+function endRound() {
+  st.playing = false;
+  // Terms still on screen when time runs out don't count as missed.
+  clearTargets();
+  const s = st.roundStats;
+  st.round++;
+  if (st.round >= ROUNDS) return gameOver();
+  $("overlayBox").innerHTML = `<p style="font-size:1.3rem;font-weight:800;margin:0 0 6px">Round ${st.round} complete!</p>
+    <p>🎯 ${s.hits} hit · 💥 ${s.wrong} wrong · 👀 ${s.missed} missed</p>
+    <button type="button" class="primary" id="contBtn">Next rule →</button>`;
+  $("overlay").hidden = false;
+  $("contBtn").addEventListener("click", roundIntro);
+  $("contBtn").focus();
+}
+
+function togglePause() {
+  if (!st || !st.playing) return;
+  st.paused = !st.paused;
+  $("pauseBtn").textContent = st.paused ? "▶ Resume" : "⏸ Pause";
+  $("field").style.visibility = st.paused ? "hidden" : "visible";
+}
+$("pauseBtn").addEventListener("click", togglePause);
+document.addEventListener("visibilitychange", () => { if (document.hidden && st && st.playing && !st.paused) togglePause(); });
+
+function gameOver() {
+  if (st.over) return;
+  st.over = true;
+  st.playing = false;
+  cancelAnimationFrame(raf);
+  clearTargets();
+  const best = loadBest();
+  const isBest = best === null || st.score > best;
+  if (isBest) saveBest(st.score);
+  $("overTitle").textContent = st.lives > 0 ? "All rounds complete! 🏆" : "Out of lives!";
+  const shots = st.hits + st.wrong;
+  $("overStats").textContent = `${st.score} points · ${st.hits} hits · accuracy ${shots ? Math.round(100 * st.hits / shots) : 0}%`;
+  $("overText").textContent = isBest ? "🏅 New best score on this device!" : `Your best is ${best}.`;
+  $("review").innerHTML = "";
+  for (const m of st.mistakes) {
+    const li = document.createElement("li");
+    li.textContent = m.text;
+    $("review").appendChild(li);
+  }
+  $("reviewEmpty").hidden = st.mistakes.length > 0;
+  showBest();
+  show("over");
+}
+</script>
+</body>
+</html>
