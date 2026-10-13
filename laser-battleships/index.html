@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laser Battleships</title>
+<meta name="description" content="A two-player battleships game where you fire lasers by typing the equation of a straight line, y = mx + c.">
+<style>
+  :root {
+    --bg: #0b1630;
+    --panel: #13224a;
+    --panel-2: #1a2d5e;
+    --text: #e8eefc;
+    --muted: #a3b3da;
+    --sea: #0f1f45;
+    --grid: #233a72;
+    --axis: #8fa3d6;
+    --ship: #c9d3ea;
+    --ship-edge: #ffffff;
+    --sunk: #ffb703;
+    --p0: #ff4d6d;
+    --p1: #3ddcff;
+    --good: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  main { max-width: 1150px; margin: 0 auto; padding: 16px; }
+  h1, h2, h3 { line-height: 1.2; margin: 0 0 .5em; }
+  h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); }
+  h2 { font-size: 1.25rem; }
+  p { margin: 0 0 .8em; }
+  a { color: var(--p1); }
+  .muted { color: var(--muted); }
+  .panel {
+    background: var(--panel);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .spacer { flex: 1; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 18px;
+    cursor: pointer;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid #2f4a8f;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.2); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--p1); color: #062033; border-color: transparent; }
+  button.fire { background: var(--p0); color: #fff; border-color: transparent; }
+  input[type=text], select {
+    font: inherit;
+    background: #0a1430;
+    color: var(--text);
+    border: 1px solid #2f4a8f;
+    border-radius: 10px;
+    padding: 10px 12px;
+    width: 100%;
+  }
+  input[type=text]:focus, select:focus, button:focus-visible { outline: 2px solid var(--p1); outline-offset: 2px; }
+  label { display: block; font-weight: 600; margin-bottom: 4px; }
+  .field { margin-bottom: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* Boards */
+  svg.board { width: 100%; height: auto; display: block; user-select: none; touch-action: manipulation; }
+  .sea { fill: var(--sea); }
+  .gl { stroke: var(--grid); stroke-width: 1; }
+  .axis { stroke: var(--axis); stroke-width: 2; }
+  .tick { fill: var(--muted); font-size: 13px; font-family: inherit; }
+  .axis-name { fill: var(--text); font-size: 15px; font-style: italic; font-weight: 700; }
+  .ship { fill: var(--ship); stroke: var(--ship-edge); stroke-width: 2; }
+  .ship.sunk { fill: var(--sunk); stroke: #fff3c4; }
+  .ship.preview { fill: rgba(61, 220, 255, .45); stroke: var(--p1); stroke-dasharray: 5 4; }
+  .ship.invalid { fill: rgba(248, 113, 113, .45); stroke: var(--bad); }
+  .laser { stroke-width: 3; stroke-linecap: round; opacity: .55; }
+  .laser.p0 { stroke: var(--p0); }
+  .laser.p1 { stroke: var(--p1); }
+  .laser.latest { opacity: 1; stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
+  .laser.p0.latest { color: var(--p0); }
+  .laser.p1.latest { color: var(--p1); }
+  .laser.fire { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw .7s ease-out forwards; }
+  .laser.aim { stroke: #fff; opacity: .7; stroke-dasharray: 8 7; stroke-width: 2; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) { .laser.fire { animation: none; stroke-dashoffset: 0; } }
+
+  /* Play layout */
+  .play { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .play { grid-template-columns: 1fr; } }
+  .place { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .place { grid-template-columns: 1fr; } }
+  .turn-badge {
+    display: inline-block; padding: 2px 12px; border-radius: 999px; font-weight: 700; font-size: .9rem;
+  }
+  .turn-badge.p0 { background: var(--p0); color: #fff; }
+  .turn-badge.p1 { background: var(--p1); color: #062033; }
+  .eq-input { display: flex; gap: 8px; align-items: center; }
+  .eq-input input { font-size: 1.25rem; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .reading { min-height: 1.5em; font-size: .95rem; margin-top: 8px; }
+  .reading.error { color: var(--bad); }
+  .result { border-radius: 12px; padding: 12px 14px; margin-top: 12px; }
+  .result.sunk { background: rgba(255, 183, 3, .15); border: 1px solid var(--sunk); }
+  .result.graze { background: rgba(251, 191, 36, .1); border: 1px solid var(--warn); }
+  .result.miss { background: rgba(163, 179, 218, .1); border: 1px solid #3a5291; }
+  .result strong { font-size: 1.15rem; }
+  .fleet-status { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 0; padding: 0; list-style: none; }
+  .fleet-status li { background: var(--panel-2); border-radius: 8px; padding: 2px 10px; font-size: .9rem; }
+  .fleet-status li.down { background: var(--sunk); color: #2b1d00; text-decoration: line-through; }
+  ol.history { margin: 0; padding-left: 1.6em; font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: .95rem; }
+  ol.history li { margin-bottom: 2px; }
+  .tag { font-family: system-ui, sans-serif; font-size: .8rem; font-weight: 700; padding: 0 6px; border-radius: 6px; margin-left: 6px; }
+  .tag.sunk { background: var(--sunk); color: #2b1d00; }
+  .tag.graze { background: var(--warn); color: #2b1d00; }
+  .tag.miss { background: #2f4a8f; color: var(--text); }
+  .handover { text-align: center; padding: 60px 18px; }
+  .handover .big { font-size: 4rem; line-height: 1; margin-bottom: 12px; }
+  @media (max-width: 600px) { main { padding: 12px; } .panel { padding: 12px; } }
+  .rules li { margin-bottom: 6px; }
+  .rule-pic { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .rule-pic figure { margin: 0; text-align: center; font-size: .9rem; }
+  .rule-pic svg { width: 120px; height: 90px; background: var(--sea); border-radius: 10px; }
+  .check { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .check input { width: 20px; height: 20px; }
+  .boards-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .boards-2 { grid-template-columns: 1fr; } }
+  kbd { background: var(--panel-2); border-radius: 5px; padding: 0 6px; font-size: .85em; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+
+  <!-- START -->
+  <section id="start" class="screen">
+    <h1>⚡ Laser Battleships</h1>
+    <p class="muted">A two-player game about straight-line graphs. Hide your ships, then try to sink your opponent's fleet by firing lasers. To fire, type the equation of a straight line in the form <strong>y = mx + c</strong>.</p>
+
+    <div class="panel">
+      <h2>How to play</h2>
+      <ol class="rules">
+        <li>Each player secretly places <strong>two ships</strong> on a coordinate grid. Pass the device between turns and don't peek!</li>
+        <li>On your turn, type a line such as <code>y = 2x + 1</code> and press <strong>Fire</strong>. Your laser follows that line across your opponent's grid.</li>
+        <li>To <strong>sink</strong> a ship, the laser must pass <strong>through two sides</strong> of the ship, going in one side and out another.</li>
+        <li>If the laser only touches a corner or runs along an edge, the ship is <strong>grazed</strong> but not sunk. That tells you a ship is close by!</li>
+        <li>The first player to sink both enemy ships wins.</li>
+      </ol>
+      <div class="rule-pic" aria-hidden="true">
+        <figure>
+          <svg viewBox="0 0 120 90"><rect x="35" y="35" width="50" height="20" rx="3" fill="#ffb703"/><line x1="10" y1="80" x2="110" y2="10" stroke="#ff4d6d" stroke-width="3"/></svg>
+          <figcaption>Sunk: in one side, out another</figcaption>
+        </figure>
+        <figure>
+          <svg viewBox="0 0 120 90"><rect x="35" y="35" width="50" height="20" rx="3" fill="#c9d3ea"/><line x1="5" y1="65" x2="70" y2="0" stroke="#ff4d6d" stroke-width="3"/></svg>
+          <figcaption>Grazed: just touches a corner</figcaption>
+        </figure>
+        <figure>
+          <svg viewBox="0 0 120 90"><rect x="35" y="35" width="50" height="20" rx="3" fill="#c9d3ea"/><line x1="10" y1="20" x2="110" y2="20" stroke="#ff4d6d" stroke-width="3"/></svg>
+          <figcaption>Miss</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <form id="setupForm" class="panel">
+      <h2>Set up the game</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label for="name0">Player 1 name</label>
+          <input type="text" id="name0" maxlength="20" placeholder="Player 1" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="name1">Player 2 name</label>
+          <input type="text" id="name1" maxlength="20" placeholder="Player 2" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="gridSize">Grid size</label>
+          <select id="gridSize">
+            <option value="6">Small: −6 to 6 (easier)</option>
+            <option value="10" selected>Large: −10 to 10</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Help</label>
+          <label class="check"><input type="checkbox" id="aimPreview"> Show an aiming line while typing</label>
+          <span class="muted" style="font-size:.9rem">Leave this off to practise picturing the line yourself.</span>
+        </div>
+      </div>
+      <button type="submit" class="primary">Start game</button>
+    </form>
+  </section>
+
+  <!-- PLACEMENT -->
+  <section id="place" class="screen" hidden>
+    <h1><span id="placeBadge" class="turn-badge p0">Player 1</span> Place your fleet</h1>
+    <div class="place">
+      <div class="panel"><svg id="placeBoard" class="board" role="img" aria-label="Your grid for placing ships"></svg></div>
+      <div class="panel">
+        <p id="placeStatus" style="font-weight:600"></p>
+        <p class="muted">Tap or click a square on the grid to place a ship. Press <kbd>R</kbd> or use <strong>Rotate</strong> to turn it.</p>
+        <div class="row" style="margin-bottom:12px">
+          <button type="button" id="rotateBtn">↻ Rotate</button>
+          <button type="button" id="undoBtn">Undo</button>
+          <button type="button" id="randomBtn">🎲 Random</button>
+        </div>
+        <ul id="placeList" class="fleet-status"></ul>
+        <hr style="border:0;border-top:1px solid #2f4a8f;margin:16px 0">
+        <button type="button" id="placeDone" class="primary" disabled>Fleet ready ✓</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HANDOVER -->
+  <section id="handover" class="screen" hidden>
+    <div class="panel handover">
+      <div class="big">🙈</div>
+      <h1 id="handoverTitle">Pass the device</h1>
+      <p id="handoverText" class="muted"></p>
+      <button type="button" id="handoverBtn" class="primary">I'm ready</button>
+    </div>
+  </section>
+
+  <!-- TURN -->
+  <section id="turn" class="screen" hidden>
+    <div class="row" style="margin-bottom:12px">
+      <h1 style="margin:0"><span id="turnBadge" class="turn-badge p0">Player 1</span> Your turn</h1>
+      <span class="spacer"></span>
+      <span class="muted" id="turnCount"></span>
+    </div>
+    <div class="play">
+      <div class="panel">
+        <h2 id="enemyLabel">Enemy waters</h2>
+        <svg id="enemyBoard" class="board" role="img" aria-label="Enemy grid showing your lasers"></svg>
+        <p class="muted" style="margin:8px 0 0">Enemy ships left:</p>
+        <ul id="enemyFleet" class="fleet-status"></ul>
+      </div>
+      <div>
+        <form id="fireForm" class="panel" autocomplete="off">
+          <label for="eq">Type your laser's equation</label>
+          <div class="eq-input">
+            <input type="text" id="eq" placeholder="y = 2x + 1" spellcheck="false" autocapitalize="off" inputmode="text">
+            <button type="submit" class="fire" id="fireBtn">Fire!</button>
+          </div>
+          <div id="reading" class="reading muted">Examples: <code>y = 3x − 2</code>, <code>y = −x + 4</code>, <code>y = 1/2x</code>, <code>y = 5</code></div>
+          <div id="result" hidden></div>
+          <div class="row" style="margin-top:12px">
+            <button type="button" id="endTurnBtn" class="primary" hidden>End turn →</button>
+          </div>
+        </form>
+        <div class="panel">
+          <h2>Your fleet</h2>
+          <svg id="myBoard" class="board" role="img" aria-label="Your own grid showing your opponent's lasers"></svg>
+        </div>
+        <div class="panel">
+          <h2>Your lasers</h2>
+          <ol id="history" class="history"></ol>
+          <p id="historyEmpty" class="muted" style="margin:0">No shots yet.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WIN -->
+  <section id="win" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🏆</div>
+      <h1 id="winTitle">Winner!</h1>
+      <p id="winText" class="muted"></p>
+      <div class="row" style="justify-content:center">
+        <button type="button" id="rematchBtn" class="primary">Rematch</button>
+        <button type="button" id="newGameBtn">New game</button>
+      </div>
+    </div>
+    <div class="boards-2">
+      <div class="panel"><h2 id="finalLabel0"></h2><svg id="finalBoard0" class="board"></svg></div>
+      <div class="panel"><h2 id="finalLabel1"></h2><svg id="finalBoard1" class="board"></svg></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+"use strict";
+
+const SHIP_TYPES = [
+  { name: "Battleship", len: 4 },
+  { name: "Destroyer", len: 3 },
+];
+const EPS = 1e-9;
+const CELL = 30;     // pixels per grid unit
+const PAD = 34;      // margin around the grid for labels
+
+let N = 10;          // grid runs from -N to N on both axes
+let aimPreview = false;
+let players = [];
+let current = 0;
+let placing = null;
+let shotFired = false;
+
+const $ = (id) => document.getElementById(id);
+
+function show(id) {
+  document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; });
+  window.scrollTo(0, 0);
+}
+
+/* ---------- Number and equation helpers ---------- */
+
+// Show a number as an integer or simple fraction where possible. If the player
+// typed decimals (no "/"), short decimals are shown as decimals instead.
+let preferDecimals = true;
+function fmt(v) {
+  if (Math.abs(v) < EPS) return "0";
+  const sign = v < 0 ? "−" : "";
+  const a = Math.abs(v);
+  if (preferDecimals && Math.abs(a * 1000 - Math.round(a * 1000)) < 1e-7) return sign + String(+a.toFixed(3));
+  for (let d = 1; d <= 12; d++) {
+    const n = Math.round(a * d);
+    if (Math.abs(a * d - n) < 1e-7) return sign + (d === 1 ? n : n + "/" + d);
+  }
+  return sign + String(+a.toFixed(3));
+}
+
+function fraction(v) {
+  for (let d = 1; d <= 12; d++) {
+    const n = Math.round(v * d);
+    if (Math.abs(v * d - n) < 1e-7) return { n, d };
+  }
+  return null;
+}
+
+function formatEq(m, c) {
+  let mPart = "";
+  if (Math.abs(m) > EPS) {
+    if (Math.abs(m - 1) < EPS) mPart = "x";
+    else if (Math.abs(m + 1) < EPS) mPart = "−x";
+    else mPart = fmt(m) + "x";
+  }
+  if (!mPart) return "y = " + fmt(c);
+  if (Math.abs(c) < EPS) return "y = " + mPart;
+  return "y = " + mPart + (c > 0 ? " + " : " − ") + fmt(Math.abs(c));
+}
+
+// Parse a number such as 3, 0.5, .5, 2/3 or (2/3).
+function parseNum(str) {
+  if (/^\(.*\)$/.test(str)) str = str.slice(1, -1);
+  const m = str.match(/^(\d+(?:\.\d+)?|\.\d+)(?:\/(\d+(?:\.\d+)?|\.\d+))?$/);
+  if (!m) return NaN;
+  const top = parseFloat(m[1]);
+  if (m[2] === undefined) return top;
+  const bottom = parseFloat(m[2]);
+  return bottom === 0 ? NaN : top / bottom;
+}
+
+// Turn text like "y = -1/2x + 3" into { m, c }, or { error }.
+function parseLine(input) {
+  let s = input.toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[−–—]/g, "-")
+    .replace(/[×*·]/g, "");
+  if (!s) return { error: "Type an equation, for example y = 2x + 1" };
+  preferDecimals = !s.includes("/");
+
+  if (s.includes("=")) {
+    const parts = s.split("=");
+    if (parts.length !== 2) return { error: "Use just one = sign, like y = 2x + 1" };
+    if (parts[0] === "y") s = parts[1];
+    else if (parts[1] === "y") s = parts[0];
+    else return { error: "Write it as y = mx + c (y on its own on one side)" };
+  }
+  if (s.includes("y")) return { error: "Write it as y = mx + c (y on its own on one side)" };
+  if (!s) return { error: "What does y equal? For example y = 2x + 1" };
+  if (/x\(|\)\(/.test(s)) return { error: "Try writing it without brackets, like y = 2x + 1" };
+
+  if (!/^[+-]/.test(s)) s = "+" + s;
+  const terms = s.match(/[+-][^+-]*/g) || [];
+  if (terms.join("") !== s) return { error: "I couldn't read that. Try something like y = 2x + 1" };
+
+  let m = 0, c = 0, sawX = false;
+  for (const t of terms) {
+    const sign = t[0] === "-" ? -1 : 1;
+    const body = t.slice(1);
+    if (!body) return { error: "There are two signs in a row. Check your + and − signs" };
+    const xi = body.indexOf("x");
+    if (xi === -1) {
+      const v = parseNum(body);
+      if (isNaN(v)) return { error: `I don't understand "${body}"` };
+      c += sign * v;
+    } else {
+      if (body.indexOf("x", xi + 1) !== -1) return { error: "Only use x once in each term, like 2x" };
+      const before = body.slice(0, xi);
+      const after = body.slice(xi + 1);
+      let coef = before === "" ? 1 : parseNum(before);
+      if (after !== "") {
+        if (after[0] !== "/") return { error: `I don't understand "${body}"` };
+        const d = parseNum(after.slice(1));
+        coef = isNaN(d) ? NaN : coef / d;
+      }
+      if (isNaN(coef)) return { error: `I don't understand "${body}"` };
+      m += sign * coef;
+      sawX = true;
+    }
+  }
+  if (Math.abs(m) > 1000 || Math.abs(c) > 1000) return { error: "Those numbers are too big for the grid" };
+  return { m, c, sawX };
+}
+
+function explain(m, c) {
+  let g;
+  if (Math.abs(m) < EPS) {
+    g = "Gradient 0: the line is horizontal (flat).";
+  } else {
+    const dir = m > 0 ? "up" : "down";
+    const f = preferDecimals ? null : fraction(Math.abs(m));
+    if (f && f.d > 1) g = `Gradient ${fmt(m)}: for every ${f.d} steps right, the line goes ${dir} ${f.n}.`;
+    else g = `Gradient ${fmt(m)}: for every 1 step right, the line goes ${dir} ${fmt(Math.abs(m))}.`;
+  }
+  return `${g} y-intercept ${fmt(c)}: it crosses the y-axis at (0, ${fmt(c)}).`;
+}
+
+/* ---------- Geometry ---------- */
+
+// 'sunk' if the line passes through the inside of the ship (crossing two sides),
+// 'graze' if it only touches a corner or runs along an edge, otherwise 'miss'.
+function hitTest(ship, m, c) {
+  const corners = [
+    [ship.x, ship.y], [ship.x + ship.w, ship.y],
+    [ship.x, ship.y + ship.h], [ship.x + ship.w, ship.y + ship.h],
+  ];
+  let above = false, below = false, on = false;
+  for (const [x, y] of corners) {
+    const d = y - (m * x + c);
+    if (d > EPS) above = true;
+    else if (d < -EPS) below = true;
+    else on = true;
+  }
+  if (above && below) return "sunk";
+  if (on) return "graze";
+  return "miss";
+}
+
+// The visible part of y = mx + c inside the grid, or null.
+function clipLine(m, c) {
+  let lo, hi;
+  if (Math.abs(m) < EPS) {
+    if (Math.abs(c) > N + EPS) return null;
+    lo = -N; hi = N;
+  } else {
+    const a = (-N - c) / m, b = (N - c) / m;
+    lo = Math.max(-N, Math.min(a, b));
+    hi = Math.min(N, Math.max(a, b));
+    if (lo > hi + EPS) return null;
+  }
+  return [lo, m * lo + c, hi, m * hi + c];
+}
+
+function overlaps(a, b) {
+  return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+}
+
+/* ---------- Drawing ---------- */
+
+const SVGNS = "http://www.w3.org/2000/svg";
+const sx = (x) => PAD + (x + N) * CELL;
+const sy = (y) => PAD + (N - y) * CELL;
+
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function drawBoard(svg, { ships = [], shots = [], preview = null, aim = null, animateLast = false } = {}) {
+  svg.innerHTML = "";
+  const size = 2 * N * CELL + 2 * PAD;
+  svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+  const span = 2 * N * CELL;
+
+  el("rect", { x: sx(-N), y: sy(N), width: span, height: span, class: "sea", rx: 4 }, svg);
+  for (let i = -N; i <= N; i++) {
+    el("line", { x1: sx(i), y1: sy(-N), x2: sx(i), y2: sy(N), class: "gl" }, svg);
+    el("line", { x1: sx(-N), y1: sy(i), x2: sx(N), y2: sy(i), class: "gl" }, svg);
+  }
+  el("line", { x1: sx(-N), y1: sy(0), x2: sx(N), y2: sy(0), class: "axis" }, svg);
+  el("line", { x1: sx(0), y1: sy(-N), x2: sx(0), y2: sy(N), class: "axis" }, svg);
+
+  const step = N > 6 ? 2 : 1;
+  for (let i = -N; i <= N; i += step) {
+    const tb = el("text", { x: sx(i), y: sy(-N) + 22, class: "tick", "text-anchor": "middle" }, svg);
+    tb.textContent = i < 0 ? "−" + -i : i;
+    const tl = el("text", { x: sx(-N) - 8, y: sy(i) + 5, class: "tick", "text-anchor": "end" }, svg);
+    tl.textContent = i < 0 ? "−" + -i : i;
+  }
+  el("text", { x: sx(N) + 8, y: sy(0) + 5, class: "axis-name" }, svg).textContent = "x";
+  el("text", { x: sx(0), y: sy(N) - 10, class: "axis-name", "text-anchor": "middle" }, svg).textContent = "y";
+
+  for (const s of ships) {
+    el("rect", {
+      x: sx(s.x) + 2, y: sy(s.y + s.h) + 2, width: s.w * CELL - 4, height: s.h * CELL - 4,
+      rx: 7, class: "ship" + (s.sunk ? " sunk" : ""),
+    }, svg);
+  }
+  if (preview) {
+    el("rect", {
+      x: sx(preview.x) + 2, y: sy(preview.y + preview.h) + 2, width: preview.w * CELL - 4, height: preview.h * CELL - 4,
+      rx: 7, class: "ship preview" + (preview.invalid ? " invalid" : ""),
+    }, svg);
+  }
+
+  shots.forEach((shot, i) => {
+    const seg = clipLine(shot.m, shot.c);
+    if (!seg) return;
+    const last = i === shots.length - 1;
+    let cls = `laser p${shot.owner}`;
+    if (last && animateLast) cls += " latest fire";
+    el("line", {
+      x1: sx(seg[0]), y1: sy(seg[1]), x2: sx(seg[2]), y2: sy(seg[3]),
+      class: cls, pathLength: 1,
+    }, svg);
+  });
+
+  if (aim) {
+    const seg = clipLine(aim.m, aim.c);
+    if (seg) el("line", { x1: sx(seg[0]), y1: sy(seg[1]), x2: sx(seg[2]), y2: sy(seg[3]), class: "laser aim" }, svg);
+  }
+}
+
+function svgToGrid(svg, evt) {
+  const pt = svg.createSVGPoint();
+  pt.x = evt.clientX; pt.y = evt.clientY;
+  const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+  return { x: (p.x - PAD) / CELL - N, y: N - (p.y - PAD) / CELL };
+}
+
+/* ---------- Setup ---------- */
+
+let lastSettings = null;
+
+$("setupForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  lastSettings = {
+    names: [$("name0").value.trim() || "Player 1", $("name1").value.trim() || "Player 2"],
+    N: parseInt($("gridSize").value, 10),
+    aim: $("aimPreview").checked,
+  };
+  newGame(lastSettings);
+});
+
+function newGame(settings) {
+  N = settings.N;
+  aimPreview = settings.aim;
+  players = settings.names.map((name) => ({ name, ships: [], shots: [] }));
+  startPlacement(0);
+}
+
+/* ---------- Placement ---------- */
+
+function startPlacement(p) {
+  current = p;
+  placing = { ships: [], horiz: true, hover: null };
+  const badge = $("placeBadge");
+  badge.textContent = players[p].name;
+  badge.className = "turn-badge p" + p;
+  show("place");
+  renderPlacement();
+}
+
+function candidateShip(gx, gy) {
+  const type = SHIP_TYPES[placing.ships.length];
+  if (!type) return null;
+  const w = placing.horiz ? type.len : 1;
+  const h = placing.horiz ? 1 : type.len;
+  let x = Math.floor(gx) - (placing.horiz ? Math.floor((type.len - 1) / 2) : 0);
+  let y = Math.floor(gy) - (placing.horiz ? 0 : Math.floor((type.len - 1) / 2));
+  x = Math.max(-N, Math.min(N - w, x));
+  y = Math.max(-N, Math.min(N - h, y));
+  const ship = { name: type.name, x, y, w, h, sunk: false };
+  ship.invalid = placing.ships.some((s) => overlaps(s, ship));
+  return ship;
+}
+
+function renderPlacement() {
+  const next = SHIP_TYPES[placing.ships.length];
+  const preview = placing.hover ? candidateShip(placing.hover.x, placing.hover.y) : null;
+  drawBoard($("placeBoard"), { ships: placing.ships, preview });
+  $("placeStatus").textContent = next
+    ? `Place your ${next.name} (${next.len} squares long).`
+    : "Fleet ready! Check your ships, then press Fleet ready.";
+  $("placeList").innerHTML = SHIP_TYPES.map((t, i) =>
+    `<li class="${i < placing.ships.length ? "" : "muted"}">${i < placing.ships.length ? "✓ " : ""}${t.name} (${t.len})</li>`
+  ).join("");
+  $("placeDone").disabled = placing.ships.length < SHIP_TYPES.length;
+  $("undoBtn").disabled = placing.ships.length === 0;
+  $("rotateBtn").disabled = !next;
+}
+
+const placeBoard = $("placeBoard");
+placeBoard.addEventListener("pointermove", (e) => {
+  if (e.pointerType !== "mouse") return;
+  placing.hover = svgToGrid(placeBoard, e);
+  renderPlacement();
+});
+placeBoard.addEventListener("pointerleave", () => { placing.hover = null; renderPlacement(); });
+placeBoard.addEventListener("click", (e) => {
+  const g = svgToGrid(placeBoard, e);
+  if (g.x < -N || g.x > N || g.y < -N || g.y > N) return;
+  const ship = candidateShip(g.x, g.y);
+  if (!ship || ship.invalid) return;
+  delete ship.invalid;
+  placing.ships.push(ship);
+  renderPlacement();
+});
+
+function rotate() {
+  placing.horiz = !placing.horiz;
+  renderPlacement();
+}
+$("rotateBtn").addEventListener("click", rotate);
+document.addEventListener("keydown", (e) => {
+  if (!$("place").hidden && (e.key === "r" || e.key === "R")) rotate();
+});
+$("undoBtn").addEventListener("click", () => { placing.ships.pop(); renderPlacement(); });
+$("randomBtn").addEventListener("click", () => {
+  placing.ships = randomFleet();
+  renderPlacement();
+});
+
+function randomFleet() {
+  const fleet = [];
+  for (const type of SHIP_TYPES) {
+    for (let tries = 0; tries < 500; tries++) {
+      const horiz = Math.random() < 0.5;
+      const w = horiz ? type.len : 1, h = horiz ? 1 : type.len;
+      const x = -N + Math.floor(Math.random() * (2 * N - w + 1));
+      const y = -N + Math.floor(Math.random() * (2 * N - h + 1));
+      const ship = { name: type.name, x, y, w, h, sunk: false };
+      if (!fleet.some((s) => overlaps(s, ship))) { fleet.push(ship); break; }
+    }
+  }
+  return fleet;
+}
+
+$("placeDone").addEventListener("click", () => {
+  players[current].ships = placing.ships;
+  if (current === 0) {
+    handover(players[1].name,
+      `${players[0].name}'s ships are hidden. Pass the device to ${players[1].name} to place their fleet.`,
+      () => startPlacement(1));
+  } else {
+    handover(players[0].name,
+      `Both fleets are ready! Pass the device to ${players[0].name} to fire the first laser.`,
+      () => startTurn(0));
+  }
+});
+
+/* ---------- Handover ---------- */
+
+let handoverNext = null;
+function handover(name, text, next) {
+  $("handoverTitle").textContent = `Pass to ${name}`;
+  $("handoverText").textContent = text + " No peeking!";
+  $("handoverBtn").textContent = `I'm ${name}, show my screen`;
+  handoverNext = next;
+  show("handover");
+}
+$("handoverBtn").addEventListener("click", () => handoverNext && handoverNext());
+
+/* ---------- Turns ---------- */
+
+function startTurn(p) {
+  current = p;
+  shotFired = false;
+  $("eq").value = "";
+  $("eq").disabled = false;
+  $("fireBtn").disabled = false;
+  $("result").hidden = true;
+  $("endTurnBtn").hidden = true;
+  setReadingDefault();
+  show("turn");
+  renderTurn(false);
+  $("eq").focus();
+}
+
+function setReadingDefault() {
+  const r = $("reading");
+  r.className = "reading muted";
+  r.innerHTML = "Examples: <code>y = 3x − 2</code>, <code>y = −x + 4</code>, <code>y = 1/2x</code>, <code>y = 5</code>";
+}
+
+function renderTurn(animateLast, aim = null) {
+  const me = players[current], foe = players[1 - current];
+  const badge = $("turnBadge");
+  badge.textContent = me.name;
+  badge.className = "turn-badge p" + current;
+  $("enemyLabel").textContent = `${foe.name}'s waters`;
+  $("turnCount").textContent = `Shot ${me.shots.length + (shotFired ? 0 : 1)}`;
+
+  drawBoard($("enemyBoard"), {
+    ships: foe.ships.filter((s) => s.sunk),
+    shots: me.shots.map((s) => ({ ...s, owner: current })),
+    animateLast,
+    aim,
+  });
+  drawBoard($("myBoard"), {
+    ships: me.ships,
+    shots: foe.shots.map((s) => ({ ...s, owner: 1 - current })),
+  });
+  $("enemyFleet").innerHTML = foe.ships.map((s) =>
+    `<li class="${s.sunk ? "down" : ""}">${s.name} (${Math.max(s.w, s.h)})</li>`).join("");
+
+  const labels = { sunk: "SUNK", graze: "GRAZED", miss: "miss" };
+  $("history").innerHTML = me.shots.map((s) =>
+    `<li>${s.text}<span class="tag ${s.result}">${labels[s.result]}</span></li>`).join("");
+  $("historyEmpty").hidden = me.shots.length > 0;
+}
+
+$("eq").addEventListener("input", () => {
+  if (shotFired) return;
+  const text = $("eq").value;
+  const r = $("reading");
+  if (!text.trim()) { setReadingDefault(); renderTurn(false); return; }
+  const p = parseLine(text);
+  if (p.error) {
+    r.className = "reading muted";
+    r.textContent = "…";
+    renderTurn(false);
+    return;
+  }
+  r.className = "reading muted";
+  r.textContent = `Reading this as: gradient ${fmt(p.m)}, y-intercept ${fmt(p.c)}`;
+  renderTurn(false, aimPreview ? p : null);
+});
+
+$("fireForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (shotFired) return;
+  const p = parseLine($("eq").value);
+  const reading = $("reading");
+  if (p.error) {
+    reading.className = "reading error";
+    reading.textContent = p.error;
+    return;
+  }
+
+  const me = players[current], foe = players[1 - current];
+  const sunkNow = [];
+  let grazed = 0;
+  for (const ship of foe.ships) {
+    if (ship.sunk) continue;
+    const h = hitTest(ship, p.m, p.c);
+    if (h === "sunk") { ship.sunk = true; sunkNow.push(ship); }
+    else if (h === "graze") grazed++;
+  }
+  const result = sunkNow.length ? "sunk" : grazed ? "graze" : "miss";
+  const text = formatEq(p.m, p.c);
+  me.shots.push({ m: p.m, c: p.c, text, result });
+  shotFired = true;
+
+  $("eq").disabled = true;
+  $("fireBtn").disabled = true;
+  reading.className = "reading muted";
+  reading.textContent = "";
+  renderTurn(true);
+
+  let headline, detail;
+  if (result === "sunk") {
+    headline = `💥 Direct hit! You sank the ${sunkNow.map((s) => s.name).join(" and the ")}!`;
+    detail = "Your laser went in one side of the ship and out another.";
+  } else if (result === "graze") {
+    headline = "⚠️ Grazed!";
+    detail = "Your laser touched a ship's corner or ran along its edge, but didn't go through it. A ship is right next to your line!";
+  } else {
+    headline = "🌊 Miss.";
+    detail = "Your laser didn't touch any ships. There are no ships along that line.";
+  }
+  const box = $("result");
+  box.className = "result " + result;
+  box.innerHTML = `<strong></strong><p style="margin:.3em 0"></p><p class="muted" style="margin:0"></p>`;
+  box.querySelector("strong").textContent = headline;
+  box.querySelectorAll("p")[0].textContent = detail;
+  box.querySelectorAll("p")[1].textContent = `${text}. ${explain(p.m, p.c)}`;
+  box.hidden = false;
+
+  const endBtn = $("endTurnBtn");
+  if (foe.ships.every((s) => s.sunk)) {
+    endBtn.textContent = "See the result 🏆";
+    endBtn.onclick = showWin;
+  } else {
+    endBtn.textContent = "End turn →";
+    endBtn.onclick = () => handover(foe.name,
+      `${me.name}, your turn is over. Pass the device to ${foe.name}.`,
+      () => startTurn(1 - current));
+  }
+  endBtn.hidden = false;
+  endBtn.focus();
+});
+
+/* ---------- Win ---------- */
+
+function showWin() {
+  const me = players[current], foe = players[1 - current];
+  $("winTitle").textContent = `${me.name} wins!`;
+  $("winText").textContent =
+    `${me.name} sank both of ${foe.name}'s ships with ${me.shots.length} laser${me.shots.length === 1 ? "" : "s"}.`;
+  for (let i = 0; i < 2; i++) {
+    $("finalLabel" + i).textContent = `${players[i].name}'s fleet`;
+    drawBoard($("finalBoard" + i), {
+      ships: players[i].ships,
+      shots: players[1 - i].shots.map((s) => ({ ...s, owner: 1 - i })),
+    });
+  }
+  show("win");
+}
+
+$("rematchBtn").addEventListener("click", () => newGame(lastSettings));
+$("newGameBtn").addEventListener("click", () => show("start"));
+</script>
+</body>
+</html>
