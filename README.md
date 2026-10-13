@@ -8,9 +8,11 @@ The home page groups the games by topic.
 
 | Topic | Game | Skill | Players |
 | --- | --- | --- | --- |
-| Number | [Prime Factor Defence](prime-defence/) | Prime factorisation and index notation | 1 |
-| Number | [Fraction Wall Race](fraction-wall/) | Adding fractions and equivalent fractions | 1 |
-| Number | [Standard Form Space Race](standard-form-race/) | Writing, reading and comparing numbers in standard form | 1 |
+| Primes & factors | [Prime Factor Defence](prime-defence/) | Prime factorisation and index notation | 1 |
+| Fractions | [Fraction Wall Race](fraction-wall/) | Adding fractions and equivalent fractions | 1 |
+| Fractions | [Mixed Number Mountain](mixed-number-mountain/) | Converting mixed numbers and the four operations with them | 1 |
+| Standard form | [Standard Form Space Race](standard-form-race/) | Writing, reading and comparing numbers in standard form | 1 |
+| Standard form | [Standard Form Bank Heist](standard-form-heist/) | The four operations with numbers in standard form | 1 |
 | Equations | [Equation Escape Room](equation-escape/) | Solving linear equations | 1 |
 | Sequences | [Nth Term Vault](nth-term-vault/) | Finding and using the nth term of linear sequences | 1 |
 | Sequences | [Matchstick Patterns](matchstick-patterns/) | Linear sequences from patterns, and why the rule works | 1 |
@@ -67,6 +69,14 @@ Four matchstick patterns (squares in a row, triangles, houses, and two rows of s
 ### Sequence Sniper
 
 Five 30-second rounds, each with a rule such as `4n − 1`. Numbers fly across the screen, and the player taps only the terms of the sequence. Distractors include near misses and "term 0" traps. Every tap shows the working (`4n − 1 = 99 → 4n = 100 → n = 25 ✅`). Wrong taps cost a life, and missed terms are listed in an end-of-game review. Later rounds bring falling sequences and much larger numbers.
+
+### Mixed Number Mountain
+
+Twelve checkpoints up a mountain. It starts with converting between mixed numbers and improper fractions, then adding (with and without carrying), subtracting (with and without borrowing), multiplying (by a whole number and by a mixed number), dividing, and a mix near the summit. Answers are typed like `3 5/6`. If an answer has the right value but isn't finished (not simplified, or an improper fraction instead of a mixed number), the game asks the student to finish it without counting a wrong try. Wrong answers are checked against the classic mistakes: adding numerators and denominators, taking the smaller fraction from the bigger when borrowing, multiplying whole numbers and fractions separately, and flipping the wrong fraction when dividing. The working always uses improper fractions.
+
+### Standard Form Bank Heist
+
+Twelve vaults: multiplying, dividing (each with and without adjusting the front number), negative powers, adding and subtracting with the same and different powers, and a final vault where the answer crosses into a new power. Answers are checked exactly, and the feedback spots the classic mistakes: not adjusting (e.g. `12 × 10⁹`), multiplying the powers, subtracting the powers the wrong way round, and adding the front numbers when the powers differ. The working shows each step, plus an ordinary-number check for addition and subtraction. Loot is £1,000 × the vault number, or half on a second try.
 
 ## Sharing the games (GitHub Pages)
 

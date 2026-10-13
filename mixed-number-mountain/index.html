@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mixed Number Mountain</title>
+<meta name="description" content="Climb the mountain by converting mixed numbers and adding, subtracting, multiplying and dividing them.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .play { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 760px) { .play { grid-template-columns: 1fr; } .mountain-panel svg { max-width: 300px; margin: 0 auto; } }
+  .mountain-panel svg { width: 100%; height: auto; display: block; }
+  .hud { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 12px; font-weight: 700; }
+  .q-type { color: var(--muted); margin-bottom: 4px; }
+  .sum { font-size: clamp(1.7rem, 5vw, 2.4rem); font-weight: 800; text-align: center; padding: 16px 8px; background: #0a1430; border-radius: 12px; margin-bottom: 14px; display: flex; justify-content: center; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .sum.words { font-size: clamp(1.15rem, 3.6vw, 1.5rem); }
+  .mixed { display: inline-flex; align-items: center; gap: 4px; }
+  .frac { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.05; font-size: .8em; vertical-align: middle; }
+  .frac > span:first-child { border-bottom: 2px solid currentColor; padding: 0 4px; }
+  .answer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 1.2rem; }
+  .answer input { flex: 1 1 8em; min-width: 8em; max-width: 12em; font-size: 1.3rem; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .preview { min-height: 2.2em; margin-top: 8px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .preview .val { color: var(--text); font-weight: 700; font-size: 1.2rem; }
+  .steps { margin: 6px 0 0; padding-left: 1.4em; }
+  .steps li { margin-bottom: 6px; }
+  .flag { font-size: 18px; }
+  .rules li { margin-bottom: 6px; }
+  table.results { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.results td, table.results th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .feedback.nudge { background: rgba(251, 191, 36, .12); border: 1px solid var(--warn); }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🏔️ Mixed Number Mountain</h1>
+    <p class="muted">Climb to the summit! Each checkpoint has a calculation with mixed numbers. The higher you go, the harder it gets: converting, then adding, subtracting, multiplying and dividing.</p>
+    <div class="panel">
+      <h2>Climbing kit</h2>
+      <ul class="rules">
+        <li><strong>Improper fractions are your rope.</strong> Change mixed numbers to improper fractions first: 2⅓ = (2 × 3 + 1)/3 = 7/3.</li>
+        <li><strong>+ and −:</strong> make the denominators the same, then add or subtract the numerators.</li>
+        <li><strong>×:</strong> multiply the numerators and multiply the denominators. Don't multiply the whole numbers and fractions separately!</li>
+        <li><strong>÷:</strong> Keep the first fraction, Change ÷ to ×, Flip the second fraction.</li>
+        <li>Give answers as a <strong>mixed number in its simplest form</strong>. Type a space between the whole number and the fraction, e.g. <code>3 5/6</code>. You can also type <code>11/4</code> or <code>4</code>.</li>
+      </ul>
+      <p class="muted" style="margin:0">Right first time: ⭐⭐. Right on the second try: ⭐. A wrong answer gets a hint, and a second wrong answer shows the working.</p>
+      <p id="bestInfo" class="muted" style="margin:8px 0 0"></p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Start climbing 🧗</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <span id="cpTitle">Checkpoint 1 of 12</span>
+      <span class="spacer"></span>
+      <span>⭐ <span id="stars">0</span></span>
+    </div>
+    <div class="play">
+      <div class="panel mountain-panel"><svg id="mountain" viewBox="0 0 300 330" role="img" aria-label="The mountain and your climber"></svg></div>
+      <form id="form" class="panel" autocomplete="off">
+        <p class="q-type" id="qType"></p>
+        <div class="sum" id="sum" aria-live="polite"></div>
+        <label for="ans" id="ansLabel">Your answer</label>
+        <div class="answer"><input type="text" id="ans" spellcheck="false" autocapitalize="off" placeholder="e.g. 3 5/6"> <button type="submit" class="go" id="checkBtn">Check</button></div>
+        <div class="preview" id="preview"></div>
+        <div id="msg" class="error"></div>
+        <div id="feedback" hidden></div>
+        <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Climb on →</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🏔️🚩</div>
+      <h1>You reached the summit!</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">Climb again (new questions)</button>
+    </div>
+    <div class="panel">
+      <h2>Your climb</h2>
+      <table class="results"><thead><tr><th>#</th><th>Question</th><th>Answer</th><th>Stars</th></tr></thead><tbody id="resultRows"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const CHECKPOINTS = 12;
+const BEST_KEY = "mixedNumberMountainBest";
+const DENS = [2, 3, 4, 5, 6, 8];
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
+const lcm = (a, b) => a / gcd(a, b) * b;
+
+/* ---------- Exact fractions { n, d } with d > 0 ---------- */
+
+const F = (n, d = 1) => { const g = gcd(n, d) || 1; const s = d < 0 ? -1 : 1; return { n: s * n / g, d: s * d / g }; };
+const add = (x, y) => F(x.n * y.d + y.n * x.d, x.d * y.d);
+const sub = (x, y) => F(x.n * y.d - y.n * x.d, x.d * y.d);
+const mul = (x, y) => F(x.n * y.n, x.d * y.d);
+const div = (x, y) => F(x.n * y.d, x.d * y.n);
+const eq = (x, y) => x.n * y.d === y.n * x.d;
+const fromMixed = (m) => F(m.w * m.d + m.n, m.d);
+const toMixed = (f) => ({ w: Math.floor(f.n / f.d), n: f.n % f.d, d: f.d });
+
+// HTML for a fraction or mixed number.
+const fracHtml = (n, d) => `<span class="frac"><span>${n}</span><span>${d}</span></span>`;
+function valueHtml(f) {
+  if (f.d === 1) return String(f.n);
+  if (f.n < f.d) return fracHtml(f.n, f.d);
+  const m = toMixed(f);
+  return `<span class="mixed">${m.w}${fracHtml(m.n, m.d)}</span>`;
+}
+const mixedHtml = (m) => (m.n === 0 ? String(m.w) : m.w === 0 ? fracHtml(m.n, m.d) : `<span class="mixed">${m.w}${fracHtml(m.n, m.d)}</span>`);
+const improperHtml = (f) => (f.d === 1 ? String(f.n) : fracHtml(f.n, f.d));
+// Plain text forms for tables and messages.
+const fracText = (f) => (f.d === 1 ? String(f.n) : `${f.n}/${f.d}`);
+const mixedText = (f) => { if (f.d === 1 || f.n < f.d) return fracText(f); const m = toMixed(f); return `${m.w} ${m.n}/${m.d}`; };
+
+/* ---------- Reading answers ---------- */
+
+const VULGAR = { "½": "1/2", "⅓": "1/3", "⅔": "2/3", "¼": "1/4", "¾": "3/4", "⅕": "1/5", "⅖": "2/5", "⅗": "3/5", "⅘": "4/5", "⅙": "1/6", "⅚": "5/6", "⅛": "1/8", "⅜": "3/8", "⅝": "5/8", "⅞": "7/8" };
+
+// Returns { form: "whole" | "fraction" | "mixed", w, n, d, value } or null.
+function parseAnswer(raw) {
+  let s = raw.trim().replace(/[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/g, (c) => " " + VULGAR[c]);
+  s = s.replace(/\s*\/\s*/g, "/").replace(/\s+/g, " ").trim();
+  let m;
+  if ((m = s.match(/^(\d+)$/))) return { form: "whole", w: +m[1], n: 0, d: 1, value: F(+m[1]) };
+  if ((m = s.match(/^(\d+)\/(\d+)$/)) && +m[2] > 0) return { form: "fraction", w: 0, n: +m[1], d: +m[2], value: F(+m[1], +m[2]) };
+  if ((m = s.match(/^(\d+) (\d+)\/(\d+)$/)) && +m[3] > 0) return { form: "mixed", w: +m[1], n: +m[2], d: +m[3], value: add(F(+m[1]), F(+m[2], +m[3])) };
+  return null;
+}
+
+/* ---------- Questions ---------- */
+
+function randMixed(maxW = 4, dens = DENS) {
+  const d = pick(dens);
+  let n;
+  do n = randInt(1, d - 1); while (gcd(n, d) !== 1);
+  return { w: randInt(1, maxW), n, d };
+}
+const fracPart = (m) => F(m.n, m.d);
+
+const PLAN = ["toImproper", "toMixed", "add", "addCarry", "sub", "subBorrow", "mulWhole", "mul", "divWhole", "div", "mix", "mix"];
+const TITLES = {
+  toImproper: "Base camp: mixed number → improper fraction", toMixed: "Base camp: improper fraction → mixed number",
+  add: "Adding mixed numbers", addCarry: "Adding mixed numbers", sub: "Subtracting mixed numbers", subBorrow: "Subtracting mixed numbers (watch out!)",
+  mulWhole: "Multiplying", mul: "Multiplying mixed numbers", divWhole: "Dividing", div: "Dividing mixed numbers", mix: "Near the summit: any operation",
+};
+const OPS = { add: "+", sub: "−", mul: "×", div: "÷" };
+
+function makeQuestion(kind) {
+  if (kind === "toImproper") {
+    const m = randMixed(6);
+    return { kind, ask: "improper", html: `Write ${mixedHtml(m)} as an improper fraction.`, text: `${m.w} ${m.n}/${m.d} as an improper fraction`, answer: fromMixed(m), m };
+  }
+  if (kind === "toMixed") {
+    const m = randMixed(6);
+    const f = fromMixed(m);
+    return { kind, ask: "mixed", html: `Write ${improperHtml(f)} as a mixed number.`, text: `${f.n}/${f.d} as a mixed number`, answer: f, f };
+  }
+  if (kind === "mix") kind = pick(["add", "subBorrow", "mul", "div"]);
+  for (;;) {
+    let a = randMixed(kind.startsWith("mul") || kind.startsWith("div") ? 3 : 4);
+    let b = randMixed(3);
+    let op;
+    if (kind === "add" || kind === "addCarry") {
+      op = "add";
+      const carry = fracPart(a).n * fracPart(b).d + fracPart(b).n * fracPart(a).d >= fracPart(a).d * fracPart(b).d;
+      if (a.d === b.d || carry !== (kind === "addCarry")) continue;
+    } else if (kind === "sub" || kind === "subBorrow") {
+      op = "sub";
+      if (a.w <= b.w) a = { ...a, w: b.w + randInt(1, 2) };
+      const borrow = fracPart(a).n * fracPart(b).d < fracPart(b).n * fracPart(a).d;
+      if (a.d === b.d || borrow !== (kind === "subBorrow")) continue;
+    } else if (kind === "mulWhole") {
+      op = "mul";
+      b = { w: randInt(2, 5), n: 0, d: 1 };
+    } else if (kind === "mul") {
+      op = "mul";
+    } else if (kind === "divWhole") {
+      op = "div";
+      b = { w: randInt(2, 5), n: 0, d: 1 };
+    } else {
+      op = "div";
+    }
+    const x = fromMixed(a), y = fromMixed(b);
+    const ans = { add, sub, mul, div }[op](x, y);
+    if (ans.n <= 0 || ans.d > 48 || ans.n / ans.d > 25 || (op !== "add" && op !== "sub" && ans.d === 1 && Math.random() < 0.7)) continue;
+    return {
+      kind, op, a, b, x, y, ask: "mixed", answer: ans,
+      html: `${mixedHtml(a)} <span>${OPS[op]}</span> ${mixedHtml(b)} <span>=</span> <span>?</span>`,
+      text: `${mixedText(x)} ${OPS[op]} ${mixedText(y)}`,
+    };
+  }
+}
+
+/* ---------- Hints, working and mistake spotting ---------- */
+
+const toImpStep = (m) => (m.n === 0 ? "" : `${mixedHtml(m)} = (${m.w} × ${m.d} + ${m.n})/${m.d} = ${improperHtml(fromMixed(m))}`);
+
+function working(q) {
+  const A = q.answer;
+  if (q.kind === "toImproper") {
+    return [`Multiply the whole number by the denominator: ${q.m.w} × ${q.m.d} = ${q.m.w * q.m.d}.`, `Add the numerator: ${q.m.w * q.m.d} + ${q.m.n} = ${A.n}.`, `Keep the denominator: ${improperHtml(A)}`];
+  }
+  if (q.kind === "toMixed") {
+    const m = toMixed(A);
+    return [`How many times does ${A.d} go into ${A.n}? ${m.w} times (${m.w} × ${A.d} = ${m.w * A.d}).`, `The remainder is ${A.n} − ${m.w * A.d} = ${m.n}, so that's ${fracHtml(m.n, A.d)} left over.`, `${improperHtml(A)} = ${mixedHtml(m)}`];
+  }
+  const steps = [];
+  const convs = [toImpStep(q.a), toImpStep(q.b)].filter(Boolean);
+  if (convs.length) steps.push(`Convert to improper fractions: ${convs.join(" and ")}`);
+  const x = q.x, y = q.y;
+  if (q.op === "add" || q.op === "sub") {
+    const L = lcm(x.d, y.d);
+    const xn = x.n * (L / x.d), yn = y.n * (L / y.d);
+    steps.push(`Make the denominators the same (${L}): ${fracHtml(xn, L)} ${OPS[q.op]} ${fracHtml(yn, L)}`);
+    const r = q.op === "add" ? xn + yn : xn - yn;
+    steps.push(`${q.op === "add" ? "Add" : "Subtract"} the numerators: ${fracHtml(r, L)}${gcd(r, L) > 1 ? ` = ${improperHtml(F(r, L))}` : ""}`);
+  } else if (q.op === "mul") {
+    steps.push(`Multiply the numerators and the denominators: ${improperHtml(x)} × ${improperHtml(y)} = ${fracHtml(x.n * y.n, x.d * y.d)}${gcd(x.n * y.n, x.d * y.d) > 1 ? ` = ${improperHtml(A)}` : ""}`);
+  } else {
+    steps.push(`Keep, Change, Flip: ${improperHtml(x)} ÷ ${improperHtml(y)} = ${improperHtml(x)} × ${fracHtml(y.d, y.n)}`);
+    steps.push(`Multiply: ${fracHtml(x.n * y.d, x.d * y.n)}${gcd(x.n * y.d, x.d * y.n) > 1 ? ` = ${improperHtml(A)}` : ""}`);
+  }
+  if (A.d !== 1 && A.n > A.d) steps.push(`Write as a mixed number: ${improperHtml(A)} = ${valueHtml(A)}`);
+  return steps;
+}
+
+function hint(q) {
+  if (q.kind === "toImproper") return `Multiply the whole number (${q.m.w}) by the denominator (${q.m.d}), then add the numerator (${q.m.n}). The denominator stays the same.`;
+  if (q.kind === "toMixed") return `How many whole times does ${q.f.d} go into ${q.f.n}? That's the whole number. The remainder goes on top of the fraction.`;
+  if (q.op === "add" || q.op === "sub") return `Convert both to improper fractions, then make the denominators the same (try ${lcm(q.x.d, q.y.d)}) before you ${q.op === "add" ? "add" : "subtract"} the numerators.`;
+  if (q.op === "mul") return "Convert to improper fractions first, then multiply the numerators and multiply the denominators. Finally, simplify and change back to a mixed number.";
+  return "Convert to improper fractions, then Keep the first, Change ÷ to ×, and Flip the second fraction. Then multiply.";
+}
+
+// Spot a classic mistake from the value the student got.
+function spotMistake(q, v) {
+  if (!q.op) {
+    if (q.kind === "toImproper" && eq(v, F(q.m.w + q.m.n, q.m.d))) return "It looks like you added the whole number to the numerator. Multiply the whole number by the denominator first.";
+    return "";
+  }
+  const fa = fracPart(q.a), fb = fracPart(q.b);
+  if (q.op === "add" && eq(v, add(F(q.a.w + q.b.w), F(q.a.n + q.b.n, q.a.d + q.b.d)))) return "It looks like you added the numerators and added the denominators. You need a common denominator first!";
+  if (q.op === "sub") {
+    const swapped = add(F(q.a.w - q.b.w), fa.n * fb.d >= fb.n * fa.d ? sub(fa, fb) : sub(fb, fa));
+    if (eq(v, swapped)) return "It looks like you took the smaller fraction away from the bigger one. When the first fraction is smaller, you need to borrow a whole. Using improper fractions avoids this trap.";
+  }
+  if (q.op === "mul" && q.b.d === 1 && eq(v, add(F(q.a.w * q.b.w), fa))) return `It looks like you only multiplied the whole number. The fraction part needs multiplying by ${q.b.w} too.`;
+  if (q.op === "mul" && q.b.d !== 1 && eq(v, add(F(q.a.w * q.b.w), mul(fa, fb)))) return "It looks like you multiplied the whole numbers and the fractions separately. That doesn't work: convert to improper fractions first.";
+  if (q.op === "div") {
+    if (eq(v, div(q.y, q.x))) return "It looks like you flipped the first fraction instead of the second. Keep the first, Change ÷ to ×, Flip the second.";
+    if (eq(v, mul(q.x, q.y))) return "It looks like you multiplied without flipping the second fraction.";
+  }
+  return "";
+}
+
+/* ---------- Game flow ---------- */
+
+let qs, idx, tries, stars, results;
+
+function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
+function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
+function showBest() {
+  const b = loadBest();
+  $("bestInfo").textContent = b !== null ? `Your best on this device: ${b} out of ${CHECKPOINTS * 2} stars.` : "";
+}
+showBest();
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", startGame);
+
+function startGame() {
+  qs = PLAN.map(makeQuestion);
+  idx = 0;
+  stars = 0;
+  results = [];
+  show("game");
+  startQuestion();
+}
+
+// Checkpoints zig-zag up the mountain.
+const CP = Array.from({ length: CHECKPOINTS + 1 }, (_, i) => {
+  const t = i / CHECKPOINTS;
+  const y = 300 - t * 255;
+  const half = 125 * (1 - t * 0.75) + 8;
+  const x = 150 + (i % 2 ? 1 : -1) * half * 0.55;
+  return { x: i === CHECKPOINTS ? 150 : x, y: i === CHECKPOINTS ? 42 : y };
+});
+
+function drawMountain(reached) {
+  const svg = $("mountain");
+  const pts = CP.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+  let flags = "";
+  for (let i = 0; i < CHECKPOINTS; i++) {
+    const p = CP[i];
+    const done = i < reached;
+    flags += `<circle cx="${p.x}" cy="${p.y}" r="7" fill="${done ? "#ffb703" : "#0b1630"}" stroke="#e8eefc" stroke-width="2"/>`;
+    flags += `<text x="${p.x + (i % 2 ? 12 : -12)}" y="${p.y + 4}" font-size="11" fill="#a3b3da" text-anchor="${i % 2 ? "start" : "end"}" font-family="system-ui">${i + 1}</text>`;
+  }
+  const climber = CP[Math.min(reached, CHECKPOINTS)];
+  svg.innerHTML = `
+    <defs><linearGradient id="mt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b6b94"/><stop offset="1" stop-color="#22325f"/></linearGradient></defs>
+    <polygon points="10,318 150,22 290,318" fill="url(#mt)"/>
+    <polygon points="150,22 118,88 136,80 150,95 165,78 182,88" fill="#e8eefc"/>
+    <polyline points="${pts.join(" ")}" fill="none" stroke="#a3b3da" stroke-width="2" stroke-dasharray="5 5"/>
+    ${flags}
+    <text x="156" y="30" font-size="22" class="flag">🚩</text>
+    <text x="${climber.x}" y="${climber.y - 10}" font-size="26" text-anchor="middle">🧗</text>`;
+}
+
+function startQuestion() {
+  const q = qs[idx];
+  tries = 0;
+  $("cpTitle").textContent = `Checkpoint ${idx + 1} of ${CHECKPOINTS}`;
+  $("qType").textContent = TITLES[PLAN[idx]];
+  $("sum").innerHTML = q.html;
+  $("sum").classList.toggle("words", !q.op);
+  $("ans").placeholder = q.ask === "improper" ? "e.g. 11/4" : "e.g. 3 5/6";
+  $("ansLabel").textContent = q.ask === "improper" ? "Your answer (as an improper fraction, e.g. 11/4)" : "Your answer (as a mixed number in its simplest form, e.g. 3 5/6)";
+  $("ans").value = "";
+  $("ans").disabled = false;
+  $("checkBtn").disabled = false;
+  $("preview").innerHTML = "";
+  $("msg").textContent = "";
+  $("feedback").hidden = true;
+  $("nextBtn").hidden = true;
+  $("stars").textContent = stars;
+  drawMountain(idx);
+  $("ans").focus();
+}
+
+$("ans").addEventListener("input", () => {
+  const p = parseAnswer($("ans").value);
+  $("preview").innerHTML = p ? `You typed: <span class="val">${p.form === "mixed" ? mixedHtml(p) : p.form === "fraction" ? fracHtml(p.n, p.d) : p.w}</span>` : "";
+});
+
+const stepsHtml = (steps) => `<ol class="steps">${steps.map((s) => `<li>${s}</li>`).join("")}</ol>`;
+
+// Right value but not finished (not simplified, or wrong form)? Explain without penalty.
+function formNudge(q, p) {
+  const A = q.answer;
+  if (q.ask === "improper") {
+    if (p.form === "mixed") return "That's the mixed number again! Write it as an improper fraction (top-heavy), e.g. 11/4.";
+    if (p.form === "fraction" && (p.n !== A.n || p.d !== A.d)) return `Correct value, but simplify it: ${p.n}/${p.d} = ${fracText(A)}.`;
+    return "";
+  }
+  if (A.d === 1) return p.form === "whole" ? "" : `Correct value! It simplifies to a whole number: ${A.n}.`;
+  if (A.n < A.d) {
+    if (p.form === "fraction" && p.n === A.n && p.d === A.d) return "";
+    return `Correct value, but write it in its simplest form: ${fracText(A)}.`;
+  }
+  if (p.form === "fraction") return `Correct value! Now write ${p.n}/${p.d} as a mixed number.`;
+  if (p.form === "mixed" && (p.n >= p.d || gcd(p.n, p.d) > 1)) return "Correct value, but the fraction part can be simplified further.";
+  return "";
+}
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (!$("nextBtn").hidden) return;
+  const q = qs[idx];
+  const p = parseAnswer($("ans").value);
+  if (!p) { $("msg").textContent = "Type a whole number, a fraction like 11/4, or a mixed number like 3 5/6 (with a space)."; return; }
+  $("msg").textContent = "";
+  const fb = $("feedback");
+  fb.hidden = false;
+
+  if (eq(p.value, q.answer)) {
+    const nudge = formNudge(q, p);
+    if (nudge) {
+      fb.className = "feedback nudge";
+      fb.innerHTML = `<p><strong>🧗 Almost there!</strong> ${nudge}</p><p class="muted">This doesn't count as a wrong try.</p>`;
+      $("ans").select();
+      return;
+    }
+    tries++;
+    const got = tries === 1 ? 2 : 1;
+    stars += got;
+    results.push({ q, got });
+    fb.className = "feedback good";
+    fb.innerHTML = `<p><strong>✅ ${valueHtml(q.answer)} is right! +${"⭐".repeat(got)}</strong></p><details><summary>See the working</summary>${stepsHtml(working(q))}</details>`;
+    return finish();
+  }
+  tries++;
+  const mistake = spotMistake(q, p.value);
+  if (tries === 1) {
+    fb.className = "feedback bad";
+    fb.innerHTML = `<p><strong>❌ Slipped!</strong> ${mistake || ""}</p><p>💡 ${hint(q)}</p><p class="muted">Try again!</p>`;
+    $("ans").select();
+    $("form").classList.remove("shake"); void $("form").offsetWidth; $("form").classList.add("shake");
+    return;
+  }
+  results.push({ q, got: 0 });
+  fb.className = "feedback info";
+  fb.innerHTML = `<p><strong>The guide helps you up.</strong> ${mistake || ""} The answer is <strong>${valueHtml(q.answer)}</strong>.</p>${stepsHtml(working(q))}`;
+  finish();
+});
+
+function finish() {
+  $("ans").disabled = true;
+  $("checkBtn").disabled = true;
+  $("stars").textContent = stars;
+  drawMountain(idx + 1);
+  $("nextBtn").textContent = idx + 1 < CHECKPOINTS ? "Climb on →" : "Reach the summit 🚩";
+  $("nextBtn").hidden = false;
+  $("nextBtn").focus();
+}
+
+$("nextBtn").addEventListener("click", () => {
+  idx++;
+  if (idx < CHECKPOINTS) startQuestion();
+  else gameOver();
+});
+
+function gameOver() {
+  const best = loadBest();
+  const isBest = best === null || stars > best;
+  if (isBest) saveBest(stars);
+  $("overStats").textContent = `⭐ ${stars} / ${CHECKPOINTS * 2} stars`;
+  $("overText").textContent = (isBest ? "🏅 New best on this device! " : `Your best is ${best}. `) +
+    (stars === CHECKPOINTS * 2 ? "A perfect climb: every checkpoint right first time!" : "Climb again for new questions.");
+  $("resultRows").innerHTML = "";
+  results.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    for (const v of [i + 1, r.q.text, r.q.ask === "improper" ? fracText(r.q.answer) : mixedText(r.q.answer), "⭐".repeat(r.got) || "–"]) {
+      const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+    }
+    $("resultRows").appendChild(tr);
+  });
+  showBest();
+  show("over");
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standard Form Bank Heist</title>
+<meta name="description" content="Crack twelve vaults by multiplying, dividing, adding and subtracting numbers in standard form.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .hud { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 12px; font-weight: 700; }
+  .hud .val { font-variant-numeric: tabular-nums; }
+  .progress { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .progress span { width: 26px; height: 26px; border-radius: 6px; background: var(--panel-2); display: grid; place-items: center; font-size: .75rem; font-weight: 700; color: var(--muted); }
+  .progress span.now { outline: 2px solid var(--p1); color: var(--text); }
+  .progress span.done { background: var(--gold); color: #2b1d00; }
+  .progress span.miss { background: #3a5291; color: var(--text); }
+  .layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 680px) { .layout { grid-template-columns: 1fr; } .vault { margin: 0 auto; } }
+  .vault {
+    width: 170px; height: 170px; border-radius: 50%; position: relative;
+    background: radial-gradient(circle at 35% 30%, #94a3b8, #475569 60%, #1e293b);
+    box-shadow: 0 0 0 8px #334155, 0 0 0 12px #1e293b, 0 8px 24px rgba(0,0,0,.5);
+    display: grid; place-items: center; transition: transform 1s cubic-bezier(.3, .7, .3, 1), box-shadow .3s;
+  }
+  .vault.alarm { box-shadow: 0 0 0 8px #7f1d1d, 0 0 0 12px var(--bad), 0 0 30px var(--bad); }
+  .vault.open { transform: perspective(700px) rotateY(-75deg); }
+  .wheel { width: 96px; height: 96px; border-radius: 50%; border: 8px solid #cbd5e1; position: relative; transition: transform 1s ease; }
+  .wheel::before, .wheel::after { content: ""; position: absolute; background: #cbd5e1; border-radius: 4px; }
+  .wheel::before { left: 50%; top: -14px; bottom: -14px; width: 8px; transform: translateX(-50%); }
+  .wheel::after { top: 50%; left: -14px; right: -14px; height: 8px; transform: translateY(-50%); }
+  .vault.open .wheel { transform: rotate(270deg); }
+  @media (prefers-reduced-motion: reduce) { .vault, .wheel { transition: none; } }
+  .vault-num { position: absolute; bottom: 18px; font-weight: 800; color: #e2e8f0; font-size: .9rem; letter-spacing: 1px; }
+  .calc { font-size: clamp(1.5rem, 5vw, 2.2rem); font-weight: 800; text-align: center; padding: 18px 8px; background: #0a1430; border-radius: 12px; margin-bottom: 14px; }
+  .calc sup, .sf sup { font-size: .6em; }
+  .calc .op { color: var(--gold); margin: 0 .3em; }
+  .sf-input { display: flex; align-items: flex-start; gap: 8px; font-size: 1.5rem; font-weight: 700; flex-wrap: wrap; }
+  .sf-input input { font-size: 1.3rem; text-align: center; }
+  .sf-input .a { width: 6.5em; margin-top: 12px; }
+  .sf-input .ten { margin-top: 18px; }
+  .sf-input .n { width: 3.8em; font-size: 1.05rem; padding: 6px 8px; }
+  .sf-input button { margin-top: 12px; font-size: 1rem; }
+  .steps { margin: 6px 0 0; padding-left: 1.4em; }
+  .steps li { margin-bottom: 6px; }
+  .rules li { margin-bottom: 6px; }
+  table.results { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.results td, table.results th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🏦 Standard Form Bank Heist</h1>
+    <p class="muted">Twelve vaults, each locked with a standard form calculation. Crack the code to grab the loot, but a wrong answer sets off the alarm! 🚨</p>
+    <div class="panel">
+      <h2>The safe-cracker's notes</h2>
+      <ul class="rules">
+        <li><strong>×</strong>: multiply the front numbers, <strong>add</strong> the powers. (3 × 10⁴) × (4 × 10⁵) = 12 × 10⁹</li>
+        <li><strong>÷</strong>: divide the front numbers, <strong>subtract</strong> the powers. (8 × 10⁹) ÷ (2 × 10³) = 4 × 10⁶</li>
+        <li><strong>Adjust!</strong> The front number must be at least 1 and less than 10: 12 × 10⁹ = <strong>1.2 × 10¹⁰</strong>, and 0.25 × 10⁶ = <strong>2.5 × 10⁵</strong>.</li>
+        <li><strong>+ and −</strong>: the powers must match first. 4 × 10⁵ + 3 × 10⁴ = 4 × 10⁵ + 0.3 × 10⁵ = <strong>4.3 × 10⁵</strong>. You can also write them as ordinary numbers.</li>
+      </ul>
+      <p class="muted" style="margin:0">Right first time: full loot 💰. Right on the second try: half. A wrong answer gets a hint, and a second wrong answer shows the working.</p>
+      <p id="bestInfo" class="muted" style="margin:8px 0 0"></p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Start the heist</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <span id="vaultTitle">Vault 1 of 12</span>
+      <span class="spacer"></span>
+      <span>💰 £<span class="val" id="loot">0</span></span>
+      <span>🚨 <span class="val" id="alarms">0</span></span>
+    </div>
+    <div class="progress" id="progress" aria-hidden="true"></div>
+    <form id="form" class="panel" autocomplete="off">
+      <div class="layout">
+        <div><div class="vault" id="vault"><div class="wheel"></div><span class="vault-num" id="vaultNum">VAULT 1</span></div></div>
+        <div>
+          <p class="muted" id="level" style="margin-bottom:6px"></p>
+          <div class="calc" id="calc" aria-live="polite"></div>
+          <label>The code: your answer in standard form</label>
+          <div class="sf-input">
+            <input type="text" class="a" id="sfA" placeholder="a" spellcheck="false" inputmode="decimal" aria-label="front number">
+            <span class="ten">× 10</span>
+            <input type="text" class="n" id="sfN" placeholder="n" spellcheck="false" aria-label="power of ten">
+            <button type="submit" class="go" id="crackBtn">Crack it</button>
+          </div>
+          <div id="msg" class="error" style="margin-top:8px"></div>
+          <div id="feedback" hidden></div>
+          <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next vault →</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">💰🏃</div>
+      <h1>You got away with it!</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">Another heist (new vaults)</button>
+    </div>
+    <div class="panel">
+      <h2>The vaults</h2>
+      <table class="results"><thead><tr><th>Vault</th><th>Calculation</th><th>Answer</th><th>Loot</th></tr></thead><tbody id="resultRows"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const VAULTS = 12;
+const BEST_KEY = "standardFormHeistBest";
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const minus = (n) => (n < 0 ? "−" + -n : String(n));
+const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+const sup = (n) => String(n).split("").map((c) => SUP[c]).join("");
+
+/* ---------- Exact numbers: value = M × 10^E with M a whole number ---------- */
+
+function V(M, E) {
+  if (M === 0) return { M: 0, E: 0 };
+  while (M % 10 === 0) { M /= 10; E++; }
+  return { M, E };
+}
+const veq = (x, y) => x.M === y.M && x.E === y.E;
+const vmul = (x, y) => V(x.M * y.M, x.E + y.E);
+function vadd(x, y, sign = 1) {
+  const E = Math.min(x.E, y.E);
+  return V(x.M * 10 ** (x.E - E) + sign * y.M * 10 ** (y.E - E), E);
+}
+// Parse a front number like "4.5" (with power n) into a value; null if invalid.
+function fromSF(aStr, n) {
+  const s = aStr.replace(/\s/g, "");
+  if (!/^\d*\.?\d+$/.test(s)) return null;
+  const [i, f = ""] = s.split(".");
+  return V(parseInt((i || "0") + f, 10), n - f.length);
+}
+// Standard form { a: "4.5", n: 3 } of a value.
+function toSF(v) {
+  const s = String(Math.abs(v.M));
+  return { a: s.length > 1 ? s[0] + "." + s.slice(1) : s, n: v.E + s.length - 1 };
+}
+// A value written as a plain decimal (for front numbers like 12 or 0.25).
+function dec(v) {
+  const s = String(v.M);
+  if (v.E >= 0) return s + "0".repeat(v.E);
+  const k = -v.E;
+  return k >= s.length ? "0." + "0".repeat(k - s.length) + s : s.slice(0, s.length - k) + "." + s.slice(s.length - k);
+}
+const group = (str) => { const [i, f] = str.split("."); const g = i.replace(/\B(?=(\d{3})+(?!\d))/g, " "); return f ? g + "." + f : g; };
+const sfHtml = (x) => { const t = toSF(x); return `${t.a} × 10<sup>${minus(t.n)}</sup>`; };
+const sfText = (x) => { const t = toSF(x); return `${t.a} × 10${sup(t.n)}`; };
+const rawHtml = (front, n) => `${dec(front)} × 10<sup>${minus(n)}</sup>`;
+const P = (n) => (n < 0 ? `(${minus(n)})` : String(n));
+
+// A random front number 1 ≤ a < 10 with dp decimal places (0 or 1).
+function front(dp) {
+  if (dp === 0) return V(randInt(2, 9), 0);
+  return V(randInt(11, 99), -1);
+}
+const between = (x, lo, hi) => { const v = x.M * 10 ** x.E; return v >= lo && v < hi; };
+const num = (x) => x.M * 10 ** x.E;
+
+/* ---------- Vaults ---------- */
+
+const PLAN = ["mul", "mul", "mulAdj", "mulAdjNeg", "div", "divAdj", "divNeg", "addSame", "addDiff", "subDiff", "mixNeg", "boss"];
+const LEVEL = {
+  mul: "Multiplying", mulAdj: "Multiplying: watch the front number!", mulAdjNeg: "Multiplying with negative powers",
+  div: "Dividing", divAdj: "Dividing: watch the front number!", divNeg: "Dividing with negative powers",
+  addSame: "Adding (same power)", addDiff: "Adding (different powers)", subDiff: "Subtracting (different powers)",
+  mixNeg: "Mixed: negative powers", boss: "Final vault: the tricky one",
+};
+
+function makeVault(kind) {
+  if (kind === "mixNeg") kind = pick(["mulAdjNeg", "divNeg"]);
+  for (;;) {
+    let x, y, op;
+    const posPow = () => randInt(2, 9);
+    if (kind === "mul" || kind === "mulAdj" || kind === "mulAdjNeg") {
+      op = "mul";
+      x = front(pick([0, 1])); y = front(0);
+      const prod = vmul(x, y);
+      const adj = !between(prod, 1, 10);
+      if (adj !== (kind !== "mul")) continue;
+      if (String(prod.M).length > 3) continue;
+      const n1 = kind === "mulAdjNeg" ? randInt(-9, 6) : posPow();
+      const n2 = kind === "mulAdjNeg" ? -randInt(2, 8) : posPow();
+      return finish({ kind, op, x, n1, y, n2 });
+    }
+    if (kind === "div" || kind === "divAdj" || kind === "divNeg") {
+      op = "div";
+      // Choose divisor and quotient so the division is exact.
+      y = front(0);
+      const q = kind === "divAdj" || (kind === "divNeg" && Math.random() < 0.5) ? V(randInt(1, 9), -1) : front(pick([0, 1]));
+      x = vmul(q, y);
+      if (!between(x, 1, 10) || y.M === 1) continue;
+      const n1 = kind === "divNeg" ? randInt(-8, 4) : randInt(6, 12);
+      const n2 = kind === "divNeg" ? pick([randInt(-8, -2), randInt(2, 6)]) : randInt(2, 5);
+      return finish({ kind, op, x, n1, y, n2 });
+    }
+    if (kind === "addSame") {
+      op = "add";
+      x = front(1); y = front(pick([0, 1]));
+      const n = posPow();
+      return finish({ kind, op, x, n1: n, y, n2: n });
+    }
+    if (kind === "addDiff" || kind === "subDiff") {
+      op = kind === "addDiff" ? "add" : "sub";
+      x = front(pick([0, 1])); y = front(pick([0, 1]));
+      const n1 = randInt(3, 8), n2 = n1 - randInt(1, 2);
+      const r = toSF(vadd(V(x.M, x.E + n1), V(y.M, y.E + n2), op === "add" ? 1 : -1));
+      if (op === "sub" && num(V(x.M, x.E + n1)) <= num(V(y.M, y.E + n2))) continue;
+      if (r.a.replace(".", "").length > 4) continue;
+      return finish({ kind, op, x, n1, y, n2 });
+    }
+    // Boss: the front number must be adjusted after adding or subtracting.
+    op = pick(["add", "sub"]);
+    x = front(1); y = front(pick([0, 1]));
+    const n1 = randInt(3, 7), n2 = op === "add" ? n1 - 1 : n1 - 1;
+    const total = vadd(V(x.M, x.E + n1), V(y.M, y.E + n2), op === "add" ? 1 : -1);
+    if (total.M <= 0) continue;
+    if (toSF(total).n === n1) continue;   // must cross into a new power
+    if (toSF(total).a.replace(".", "").length > 4) continue;
+    return finish({ kind, op, x, n1, y, n2 });
+  }
+}
+
+const OPS = { mul: "×", div: "÷", add: "+", sub: "−" };
+function finish(v) {
+  const X = V(v.x.M, v.x.E + v.n1), Y = V(v.y.M, v.y.E + v.n2);
+  v.X = X; v.Y = Y;
+  v.answer = v.op === "mul" ? vmul(X, Y) : v.op === "div" ? V(1, 0) : vadd(X, Y, v.op === "add" ? 1 : -1);
+  if (v.op === "div") {
+    // X ÷ Y exactly: X.M / Y.M is exact by construction of the fronts.
+    const fq = V(v.x.M * 10 ** 6 / v.y.M, v.x.E - v.y.E - 6);
+    v.frontQ = fq;
+    v.answer = V(fq.M, fq.E + v.n1 - v.n2);
+  }
+  v.html = `(${sfHtml(X)}) <span class="op">${OPS[v.op]}</span> (${sfHtml(Y)})`;
+  v.text = `(${sfText(X)}) ${OPS[v.op]} (${sfText(Y)})`;
+  return v;
+}
+
+/* ---------- Working, hints and mistakes ---------- */
+
+function adjustStep(rawFront, power) {
+  const sf = toSF(V(rawFront.M, rawFront.E + power));
+  const f = num(rawFront);
+  if (f >= 1 && f < 10) return null;
+  if (f >= 10) return `${dec(rawFront)} isn't between 1 and 10. ${dec(rawFront)} = ${sf.a} × 10<sup>${toSF(rawFront).n}</sup>, so the power goes up: ${sf.a} × 10<sup>${minus(sf.n)}</sup>`;
+  return `${dec(rawFront)} is less than 1, so it isn't standard form. ${dec(rawFront)} = ${toSF(rawFront).a} × 10<sup>${minus(toSF(rawFront).n)}</sup>, so the power goes down: ${sf.a} × 10<sup>${minus(sf.n)}</sup>`;
+}
+
+function working(v) {
+  const steps = [];
+  const fx = toSF(v.X), fy = toSF(v.Y);
+  if (v.op === "mul") {
+    const p = vmul(v.x, v.y), n = v.n1 + v.n2;
+    steps.push(`Multiply the front numbers: ${fx.a} × ${fy.a} = ${dec(p)}`);
+    steps.push(`Add the powers: ${minus(v.n1)} + ${P(v.n2)} = ${minus(n)}`);
+    steps.push(`That gives ${rawHtml(p, n)}`);
+    const adj = adjustStep(p, n);
+    if (adj) steps.push(adj);
+  } else if (v.op === "div") {
+    const n = v.n1 - v.n2;
+    steps.push(`Divide the front numbers: ${fx.a} ÷ ${fy.a} = ${dec(v.frontQ)}`);
+    steps.push(`Subtract the powers: ${minus(v.n1)} − ${P(v.n2)} = ${minus(n)}`);
+    steps.push(`That gives ${rawHtml(v.frontQ, n)}`);
+    const adj = adjustStep(v.frontQ, n);
+    if (adj) steps.push(adj);
+  } else {
+    const word = v.op === "add" ? "Add" : "Subtract";
+    let yFront = v.y;
+    if (v.n1 !== v.n2) {
+      yFront = V(v.y.M, v.y.E - (v.n1 - v.n2));
+      steps.push(`The powers are different, so rewrite the second number with 10<sup>${minus(v.n1)}</sup>: ${sfHtml(v.Y)} = ${rawHtml(yFront, v.n1)}`);
+    }
+    const s = vadd(v.x, yFront, v.op === "add" ? 1 : -1);
+    steps.push(`${word} the front numbers: ${fx.a} ${OPS[v.op]} ${dec(yFront)} = ${dec(s)}`);
+    steps.push(`That gives ${rawHtml(s, v.n1)}`);
+    const adj = adjustStep(s, v.n1);
+    if (adj) steps.push(adj);
+    if (v.n1 <= 8 && v.n2 >= -6) steps.push(`Check with ordinary numbers: ${group(dec(v.X))} ${OPS[v.op]} ${group(dec(v.Y))} = ${group(dec(v.answer))} ✓`);
+  }
+  steps.push(`<strong>Answer: ${sfHtml(v.answer)}</strong>`);
+  return steps;
+}
+
+function hint(v) {
+  if (v.op === "mul") return "Multiply the front numbers and add the powers. Then check: is the front number at least 1 and less than 10? If not, adjust it.";
+  if (v.op === "div") return "Divide the front numbers and subtract the powers (first power minus second power). If the front number is less than 1, adjust it.";
+  return `You can't just ${v.op === "add" ? "add" : "subtract"} the front numbers unless the powers match. Rewrite one number so both have the same power, or change both to ordinary numbers first.`;
+}
+
+// Recognise classic mistakes from the student's answer.
+function spot(v, ans, aStr, n) {
+  const aNum = parseFloat(aStr);
+  if (veq(ans, v.answer) && !(aNum >= 1 && aNum < 10)) {
+    return aNum >= 10
+      ? `That's the right value, but ${aStr} isn't between 1 and 10, so it isn't standard form yet. Adjust it: make the front number 10 times smaller and the power 1 bigger.`
+      : `That's the right value, but ${aStr} is less than 1, so it isn't standard form yet. Adjust it: make the front number 10 times bigger and the power 1 smaller.`;
+  }
+  const sameDigits = String(ans.M) === String(v.answer.M);
+  if (v.op === "mul" && sameDigits && n === v.n1 * v.n2 + (toSF(v.answer).n - (v.n1 + v.n2))) return "It looks like you multiplied the powers. When you multiply, you add the powers.";
+  if (v.op === "mul" && veq(ans, V(vadd(v.x, v.y).M, vadd(v.x, v.y).E + v.n1 + v.n2))) return "It looks like you added the front numbers. When you multiply, multiply the front numbers.";
+  if (v.op === "div" && sameDigits && n === toSF(v.answer).n - 2 * (v.n1 - v.n2)) return "It looks like you subtracted the powers the wrong way round. Do the first power minus the second.";
+  if (v.op === "div" && sameDigits && n === v.n1 + v.n2 + (toSF(v.answer).n - (v.n1 - v.n2))) return "It looks like you added the powers. When you divide, you subtract the powers.";
+  if (v.op === "add" || v.op === "sub") {
+    const f = vadd(v.x, v.y, v.op === "add" ? 1 : -1);
+    if (v.n1 !== v.n2 && (veq(ans, V(f.M, f.E + v.n1)) || veq(ans, V(f.M, f.E + v.n2)))) return `It looks like you ${v.op === "add" ? "added" : "subtracted"} the front numbers even though the powers are different. Make the powers match first!`;
+    if (n === v.n1 + v.n2) return `When you ${v.op === "add" ? "add" : "subtract"} numbers in standard form, you don't add the powers.`;
+  }
+  return "";
+}
+
+/* ---------- Game flow ---------- */
+
+let vaults, idx, tries, loot, alarms, results;
+
+function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
+function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
+const money = (n) => n.toLocaleString("en-GB");
+const prize = (i) => 1000 * (i + 1);
+const MAX_LOOT = Array.from({ length: VAULTS }, (_, i) => prize(i)).reduce((a, b) => a + b, 0);
+function showBest() {
+  const b = loadBest();
+  $("bestInfo").textContent = b !== null ? `Your best haul on this device: £${money(b)} out of £${money(MAX_LOOT)}.` : "";
+}
+showBest();
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", startGame);
+
+function startGame() {
+  vaults = PLAN.map(makeVault);
+  idx = 0; loot = 0; alarms = 0; results = [];
+  show("game");
+  startVault();
+}
+
+function startVault() {
+  const v = vaults[idx];
+  tries = 0;
+  $("vault").classList.remove("open", "alarm");
+  $("vaultTitle").textContent = `Vault ${idx + 1} of ${VAULTS} · worth £${money(prize(idx))}`;
+  $("vaultNum").textContent = `VAULT ${idx + 1}`;
+  $("level").textContent = LEVEL[v.kind] || LEVEL[PLAN[idx]];
+  $("calc").innerHTML = v.html;
+  for (const id of ["sfA", "sfN"]) { $(id).value = ""; $(id).disabled = false; }
+  $("crackBtn").disabled = false;
+  $("msg").textContent = "";
+  $("feedback").hidden = true;
+  $("nextBtn").hidden = true;
+  renderHud();
+  $("sfA").focus();
+}
+
+function renderHud() {
+  $("loot").textContent = money(loot);
+  $("alarms").textContent = alarms;
+  $("progress").innerHTML = Array.from({ length: VAULTS }, (_, i) => {
+    const r = results[i];
+    return `<span class="${r ? (r.got ? "done" : "miss") : i === idx ? "now" : ""}">${i + 1}</span>`;
+  }).join("");
+}
+
+const stepsHtml = (steps) => `<ol class="steps">${steps.map((s) => `<li>${s}</li>`).join("")}</ol>`;
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (!$("nextBtn").hidden) return;
+  const v = vaults[idx];
+  const aStr = $("sfA").value.trim();
+  const nStr = $("sfN").value.trim().replace(/[−–—]/g, "-");
+  if (!/^-?\d+$/.test(nStr)) { $("msg").textContent = "Type the power of 10 in the small box, e.g. 7 or −3."; return; }
+  const n = parseInt(nStr, 10);
+  const ans = fromSF(aStr, n);
+  if (!ans) { $("msg").textContent = "Type the front number in the first box, e.g. 4.5"; return; }
+  $("msg").textContent = "";
+  tries++;
+  const aNum = parseFloat(aStr);
+  const correct = veq(ans, v.answer) && aNum >= 1 && aNum < 10;
+  const fb = $("feedback");
+  fb.hidden = false;
+  if (correct) {
+    const got = tries === 1 ? prize(idx) : prize(idx) / 2;
+    loot += got;
+    results[idx] = { v, got };
+    $("vault").classList.remove("alarm");
+    $("vault").classList.add("open");
+    fb.className = "feedback good";
+    fb.innerHTML = `<p><strong>🔓 Vault cracked! +£${money(got)}</strong></p><details><summary>See the working</summary>${stepsHtml(working(v))}</details>`;
+    return done();
+  }
+  alarms++;
+  $("vault").classList.add("alarm");
+  const mistake = spot(v, ans, esc(aStr), n);
+  if (tries === 1) {
+    fb.className = "feedback bad";
+    fb.innerHTML = `<p><strong>🚨 Alarm!</strong> ${mistake || "That's not the code."}</p><p>💡 ${hint(v)}</p><p class="muted">Quick, try again!</p>`;
+    $("form").classList.remove("shake"); void $("form").offsetWidth; $("form").classList.add("shake");
+    renderHud();
+    return;
+  }
+  results[idx] = { v, got: 0 };
+  fb.className = "feedback info";
+  fb.innerHTML = `<p><strong>The getaway driver cracks it for you (no loot this time).</strong> ${mistake}</p>${stepsHtml(working(v))}`;
+  done();
+});
+
+function done() {
+  for (const id of ["sfA", "sfN"]) $(id).disabled = true;
+  $("crackBtn").disabled = true;
+  $("nextBtn").textContent = idx + 1 < VAULTS ? "Next vault →" : "Make the getaway 🏃";
+  $("nextBtn").hidden = false;
+  renderHud();
+  $("nextBtn").focus();
+}
+
+$("nextBtn").addEventListener("click", () => {
+  idx++;
+  if (idx < VAULTS) startVault();
+  else gameOver();
+});
+
+function gameOver() {
+  const best = loadBest();
+  const isBest = best === null || loot > best;
+  if (isBest) saveBest(loot);
+  $("overStats").textContent = `💰 £${money(loot)} of £${money(MAX_LOOT)} · 🚨 ${alarms} alarm${alarms === 1 ? "" : "s"}`;
+  $("overText").textContent = (isBest ? "🏅 Your biggest haul on this device! " : `Your best haul is £${money(best)}. `) +
+    (loot === MAX_LOOT ? "The perfect heist: not a single alarm!" : "Plan another heist for new vaults.");
+  $("resultRows").innerHTML = "";
+  results.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    for (const val of [i + 1, r.v.text, sfText(r.v.answer), r.got ? `£${money(r.got)}` : "–"]) {
+      const td = document.createElement("td"); td.textContent = val; tr.appendChild(td);
+    }
+    $("resultRows").appendChild(tr);
+  });
+  showBest();
+  show("over");
+}
+</script>
+</body>
+</html>
