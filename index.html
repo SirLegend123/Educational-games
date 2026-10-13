@@ -13,9 +13,23 @@
   main { max-width:960px; margin:0 auto; padding:32px 16px 48px; }
   h1 { font-size:clamp(1.8rem,5vw,2.6rem); margin:0 0 .3em; }
   p { color:var(--muted); }
-  nav.topics { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 8px; }
-  nav.topics a { background:var(--panel-2); color:var(--text); text-decoration:none; padding:6px 14px; border-radius:999px; font-weight:600; font-size:.95rem; border:1px solid transparent; }
-  nav.topics a:hover, nav.topics a:focus-visible { border-color:var(--accent); outline:none; }
+  .picker { background:var(--panel); border-radius:14px; padding:16px 18px; margin:18px 0 6px; }
+  .picker h2 { font-size:1.15rem; margin:0 0 .2em; }
+  .picker > p { margin:0 0 12px; font-size:.95rem; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { font:inherit; font-weight:600; font-size:.95rem; cursor:pointer; padding:7px 14px; border-radius:999px;
+    background:transparent; color:var(--muted); border:2px dashed #3a5291; }
+  .chip[aria-pressed="true"] { background:var(--accent); color:#062033; border:2px solid var(--accent); }
+  .chip[aria-pressed="true"]::before { content:"✓ "; }
+  .chip:hover { filter:brightness(1.15); }
+  .chip:focus-visible, .btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .picker .actions { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; margin-top:12px; }
+  .btn { font:inherit; font-weight:600; font-size:.9rem; cursor:pointer; padding:6px 12px; border-radius:10px; background:var(--panel-2); color:var(--text); border:1px solid #2f4a8f; }
+  .btn:hover { filter:brightness(1.2); }
+  #shareMsg { font-size:.9rem; color:#4ade80; }
+  #status { font-size:.9rem; color:var(--muted); }
+  .empty { background:var(--panel); border-radius:14px; padding:24px; text-align:center; margin-top:24px; }
+  [hidden] { display:none !important; }
   section.topic { margin-top:34px; scroll-margin-top:16px; }
   section.topic h2 { font-size:1.5rem; margin:0 0 .15em; }
   section.topic > p { margin:0 0 14px; }
@@ -26,20 +40,34 @@
   .card h3 { margin:.3em 0 .2em; font-size:1.25rem; }
   .card p { margin:0 0 .6em; }
   .tags { font-size:.85rem; color:var(--accent); font-weight:600; }
+  .best { margin-top:10px; padding-top:10px; border-top:1px solid #2f4a8f; font-size:.88rem; font-weight:600; }
+  .best.none { color:var(--muted); font-weight:500; }
 </style>
 </head>
 <body>
 <main>
   <h1>🎓 Educational Games</h1>
-  <p>Free browser games for practising maths. No installation needed, just pick a topic and play.</p>
-  <nav class="topics" aria-label="Topics">
-    <a href="#primes">🏰 Primes &amp; factors</a>
-    <a href="#fractions">🍰 Fractions</a>
-    <a href="#standard-form">🚀 Standard form</a>
-    <a href="#equations">⚖️ Equations</a>
-    <a href="#sequences">🔁 Sequences</a>
-    <a href="#graphs">📈 Straight-line graphs</a>
-  </nav>
+  <p>Free browser games for practising maths. No installation needed: choose your topics and play.</p>
+  <div class="picker" role="region" aria-label="Choose your topics">
+    <h2>📚 Build your revision page</h2>
+    <p>Tap topics to show or hide them. Your choice is saved on this device, and your best score in each game shows on its card.</p>
+    <div class="chips" id="chips">
+      <button type="button" class="chip" data-topic="primes" aria-pressed="true">🏰 Primes &amp; factors</button>
+      <button type="button" class="chip" data-topic="fractions" aria-pressed="true">🍰 Fractions</button>
+      <button type="button" class="chip" data-topic="standard-form" aria-pressed="true">🚀 Standard form</button>
+      <button type="button" class="chip" data-topic="equations" aria-pressed="true">⚖️ Equations</button>
+      <button type="button" class="chip" data-topic="sequences" aria-pressed="true">🔁 Sequences</button>
+      <button type="button" class="chip" data-topic="graphs" aria-pressed="true">📈 Straight-line graphs</button>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn" id="allBtn">Show all</button>
+      <button type="button" class="btn" id="noneBtn">Clear</button>
+      <button type="button" class="btn" id="shareBtn">🔗 Copy a link to these topics</button>
+      <span id="shareMsg" aria-live="polite"></span>
+      <span id="status"></span>
+    </div>
+  </div>
+  <div class="empty" id="empty" hidden><p style="margin:0">No topics chosen yet. Tap the topics you want to revise above.</p></div>
 
   <section class="topic" id="primes">
     <h2>🏰 Primes &amp; factors</h2>
@@ -155,5 +183,108 @@
     </div>
   </section>
 </main>
+<script>
+"use strict";
+// Topic picker: choose which sections show. The choice is kept in this
+// device's storage and in the page address (?topics=...), so a link to a
+// chosen set of topics can be shared with a class.
+const TOPIC_KEY = "homeTopics";
+const chips = [...document.querySelectorAll(".chip")];
+const ALL = chips.map((c) => c.dataset.topic);
+
+function readStored() {
+  try { return JSON.parse(localStorage.getItem(TOPIC_KEY)); } catch { return null; }
+}
+function store(list) {
+  try { localStorage.setItem(TOPIC_KEY, JSON.stringify(list)); } catch { /* storage unavailable */ }
+}
+
+function initialTopics() {
+  const param = new URLSearchParams(location.search).get("topics");
+  if (param !== null) {
+    const list = param.split(",").filter((t) => ALL.includes(t));
+    if (list.length) return list;
+  }
+  const saved = readStored();
+  return Array.isArray(saved) ? saved.filter((t) => ALL.includes(t)) : ALL;
+}
+
+let chosen = initialTopics();
+
+function apply() {
+  for (const c of chips) c.setAttribute("aria-pressed", String(chosen.includes(c.dataset.topic)));
+  for (const t of ALL) document.getElementById(t).hidden = !chosen.includes(t);
+  document.getElementById("empty").hidden = chosen.length > 0;
+  const games = chosen.reduce((n, t) => n + document.getElementById(t).querySelectorAll("a.card").length, 0);
+  document.getElementById("status").textContent = chosen.length === ALL.length
+    ? `Showing all ${ALL.length} topics`
+    : `Showing ${chosen.length} of ${ALL.length} topics (${games} game${games === 1 ? "" : "s"})`;
+  store(chosen);
+  // Keep the address in step so it can be bookmarked or shared as it is.
+  history.replaceState(null, "", shareUrl());
+  document.getElementById("shareMsg").textContent = "";
+}
+
+for (const c of chips) {
+  c.addEventListener("click", () => {
+    const t = c.dataset.topic;
+    chosen = chosen.includes(t) ? chosen.filter((x) => x !== t) : ALL.filter((x) => x === t || chosen.includes(x));
+    apply();
+  });
+}
+document.getElementById("allBtn").addEventListener("click", () => { chosen = [...ALL]; apply(); });
+document.getElementById("noneBtn").addEventListener("click", () => { chosen = []; apply(); });
+// This page's address with the chosen topics, e.g. ...?topics=fractions,sequences
+function shareUrl() {
+  const page = location.href.split(/[?#]/)[0];
+  return chosen.length && chosen.length < ALL.length ? `${page}?topics=${chosen.join(",")}` : page;
+}
+
+document.getElementById("shareBtn").addEventListener("click", async () => {
+  const url = { href: shareUrl() };
+  const msg = document.getElementById("shareMsg");
+  try {
+    await navigator.clipboard.writeText(url.href);
+    msg.textContent = "✓ Link copied! Anyone who opens it sees just these topics.";
+  } catch {
+    window.prompt("Copy this link to share these topics:", url.href);
+  }
+});
+
+// Best scores saved by each game on this device, shown on its card.
+const clock = (ms) => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+const read = (key) => { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } };
+const BESTS = {
+  "prime-defence/": () => { const b = read("primeDefenceBest"); return b && `${b.score} points (reached wave ${b.wave})`; },
+  "fraction-wall/": () => {
+    const n = read("fractionWallBest-normal"), h = read("fractionWallBest-hard");
+    return (n !== null || h !== null) && [n !== null && `fastest time ${clock(n)}`, h !== null && `hard mode ${clock(h)}`].filter(Boolean).join(", ");
+  },
+  "mixed-number-mountain/": () => { const b = read("mixedNumberMountainBest"); return b !== null && `${b} / 24 ⭐`; },
+  "standard-form-race/": () => { const b = read("standardFormRaceBest"); return b !== null && `${b} / 39 ⛽`; },
+  "standard-form-heist/": () => { const b = read("standardFormHeistBest"); return b !== null && `£${b.toLocaleString("en-GB")} of £78,000`; },
+  "equation-escape/": () => { const b = read("equationEscapeBest"); return b && `${b.keys} / 10 🔑 in ${clock(b.time)}`; },
+  "nth-term-vault/": () => { const b = read("nthTermVaultBest"); return b !== null && `${b} / 20 🔑`; },
+  "matchstick-patterns/": () => { const b = read("matchstickPatternsBest"); return b !== null && `${b} / 16 ⭐`; },
+  "sequence-sniper/": () => { const b = read("sequenceSniperBest"); return b !== null && `${b} points`; },
+  "parallel-parking/": () => { const b = read("parallelParkingBest"); return b !== null && `${b} / 30 ⭐`; },
+};
+for (const card of document.querySelectorAll("a.card")) {
+  const href = card.getAttribute("href");
+  const div = document.createElement("div");
+  div.className = "best";
+  if (BESTS[href]) {
+    const text = BESTS[href]();
+    if (text) div.textContent = `🏅 Your best: ${text}`;
+    else { div.textContent = "Not played yet on this device"; div.classList.add("none"); }
+  } else {
+    div.textContent = href === "laser-battleships/" ? "Play with a friend or against the computer" : "A two-player game: play with a friend";
+    div.classList.add("none");
+  }
+  card.appendChild(div);
+}
+
+apply();
+</script>
 </body>
 </html>

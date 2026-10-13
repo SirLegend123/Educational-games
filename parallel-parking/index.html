@@ -47,6 +47,7 @@
         <li>In later levels the road's equation is hidden. Work out its gradient from two marked points: <strong>change in y ÷ change in x</strong>.</li>
       </ul>
       <p class="muted" style="margin:0">10 levels. Earn ⭐⭐⭐ by parking first time without hints.</p>
+      <p id="bestInfo" class="muted" style="margin:8px 0 0"></p>
     </div>
     <button type="button" class="primary" id="startBtn">Start driving</button>
   </section>
@@ -300,12 +301,24 @@ $("nextBtn").addEventListener("click", () => {
   else finish();
 });
 
+const BEST_KEY = "parallelParkingBest";
+function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
+function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
+function showBest() {
+  const b = loadBest();
+  $("bestInfo").textContent = b !== null ? `Your best on this device: ${b} out of ${LEVELS * 3} stars.` : "";
+}
+showBest();
+
 function finish() {
   const total = results.reduce((s, r) => s + r.stars, 0);
+  const best = loadBest();
+  if (best === null || total > best) saveBest(total);
+  showBest();
   $("finalStars").textContent = `${total} / ${LEVELS * 3} ⭐`;
-  $("finalText").textContent = total === LEVELS * 3
+  $("finalText").textContent = (best === null || total > best ? "🏅 New best on this device! " : "") + (total === LEVELS * 3
     ? "A perfect score: every car parked first time!"
-    : total >= LEVELS * 2 ? "Great driving! Play again to try for all 30 stars." : "Good effort! Play again for new levels and more stars.";
+    : total >= LEVELS * 2 ? "Great driving! Play again to try for all 30 stars." : "Good effort! Play again for new levels and more stars.");
   $("resultRows").innerHTML = "";
   for (const r of results) {
     const tr = document.createElement("tr");

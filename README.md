@@ -4,7 +4,7 @@ A collection of free browser-based educational games. Each game is a self-contai
 
 ## Games
 
-The home page groups the games by topic.
+The home page groups the games by topic. Students can tap topics on or off to build their own revision page (remembered on their device), and each card shows their best score in that game. **Copy a link to these topics** gives a link like `https://sirlegend123.github.io/Educational-games/?topics=fractions,standard-form` that opens with just those topics, handy for setting revision for a class. The topic names are `primes`, `fractions`, `standard-form`, `equations`, `sequences` and `graphs`.
 
 | Topic | Game | Skill | Players |
 | --- | --- | --- | --- |
