@@ -161,7 +161,10 @@ function questionHtml(q, html = true) {
 const head = (t, i) => { const s = termText(t.coef, t.key, true); return i > 0 && t.coef > 0 ? "+" + s : s; };
 
 let qs, idx, gridTries, finalTries, keys, results, expert, gridDone;
-const pad = Keypad.create($("keypad"), { inputs: () => [...$("grid").querySelectorAll("input"), $("ans")] });
+const pad = Keypad.create($("keypad"), {
+  inputs: () => [...$("grid").querySelectorAll("input"), $("ans")],
+  keys: [Keypad.key("+", " + "), Keypad.key("−", " − "), Keypad.letter("x"), Keypad.key("²")],
+});
 
 function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
 function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
@@ -211,7 +214,6 @@ function startLock() {
   $("ans").value = ""; $("ans").disabled = false; $("checkBtn").disabled = false;
   $("preview").innerHTML = ""; $("msg").textContent = "";
   $("feedback").hidden = true; $("nextBtn").hidden = true;
-  $("keypad").hidden = false;
   pad.refresh();
   renderLocks();
   (skipGrid ? $("ans") : g.querySelector("input")).focus();
@@ -348,7 +350,6 @@ $("finalForm").addEventListener("submit", (e) => {
 function finish() {
   const q = qs[idx];
   $("ans").disabled = true; $("checkBtn").disabled = true;
-  $("keypad").hidden = true;
   results[idx] = { q, got: q.gridKey + q.finalKey };
   $("nextBtn").textContent = idx + 1 < LOCKS ? "Next lock →" : "Break free 🎉";
   $("nextBtn").hidden = false;

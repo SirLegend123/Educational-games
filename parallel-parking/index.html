@@ -71,6 +71,7 @@
             <input type="text" id="eq" class="mono" placeholder="y = mx + c" spellcheck="false" autocapitalize="off">
             <button type="submit" class="primary" id="goBtn">Drive!</button>
           </div>
+          <div id="keypad"></div>
           <div id="msg" class="muted" style="margin-top:8px"></div>
           <div id="feedback" hidden></div>
           <div class="row" style="margin-top:12px">
@@ -100,6 +101,7 @@
 </main>
 
 <script src="../shared/lines.js"></script>
+<script src="../shared/keypad.js"></script>
 <script>
 "use strict";
 const { EPS, fraction, fmt, fmtP, lin, formatEq, parseLine, createGrid, randInt, pick } = Lines;
@@ -110,6 +112,8 @@ const HARD = [2 / 3, -2 / 3, 3 / 2, -3 / 2, 1 / 3, -1 / 3, 1 / 4, -1 / 4, 4, -4,
 
 let level, lv, tries, hintsUsed, attempts, results, solved;
 const $ = (id) => document.getElementById(id);
+// On-screen keypad, so tablets don't need their own keyboard.
+const pad = Keypad.create($("keypad"), { inputs: () => [$("eq")], keys: [Keypad.key("+", " + "), Keypad.key("−", " − "), Keypad.letter("x"), Keypad.key("/"), Keypad.key("."), Keypad.key("y =", "y = ", "word")] });
 const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
 
 $("startBtn").addEventListener("click", startGame);

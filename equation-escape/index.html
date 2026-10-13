@@ -95,6 +95,7 @@
         <div class="equation" id="equation" aria-live="polite"></div>
         <label for="ans">Unlock code</label>
         <div class="answer">x = <input type="text" id="ans" spellcheck="false" autocapitalize="off" inputmode="text"> <button type="submit" class="go" id="unlockBtn">Unlock</button></div>
+        <div id="keypad"></div>
         <div id="msg" class="error" style="margin-top:8px"></div>
         <div id="feedback" hidden></div>
         <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next room →</button>
@@ -118,6 +119,7 @@
 </main>
 
 <script src="../shared/lines.js"></script>
+<script src="../shared/keypad.js"></script>
 <script>
 "use strict";
 const { fmt, lin, parseNumber, randInt, pick } = Lines;
@@ -132,6 +134,8 @@ const BEST_KEY = "equationEscapeBest";
 
 let room, puzzle, tries, results, startTime, timerId, done;
 const $ = (id) => document.getElementById(id);
+// On-screen keypad, so tablets don't need their own keyboard.
+const pad = Keypad.create($("keypad"), { inputs: () => [$("ans")], keys: [Keypad.key("−", "−"), Keypad.key("/"), Keypad.key(".")] });
 const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
 const nonZero = (lo, hi) => { let v; do v = randInt(lo, hi); while (v === 0); return v; };
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");

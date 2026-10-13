@@ -110,6 +110,7 @@
           <div id="crossMsg" class="error" style="margin-top:8px"></div>
         </form>
 
+        <div id="keypad"></div>
         <div id="feedback" class="panel" hidden>
           <div id="feedbackBody"></div>
           <button type="button" class="primary" id="nextBtn" style="margin-top:12px">Next turn →</button>
@@ -139,6 +140,7 @@
 </main>
 
 <script src="../shared/lines.js"></script>
+<script src="../shared/keypad.js"></script>
 <script>
 "use strict";
 const { EPS, fmt, fmtP, lin, formatEq, parseNumber, parseLine, createGrid, randInt } = Lines;
@@ -147,6 +149,8 @@ const STAR_COUNT = 8;
 
 let settings, players, lines, stars, crosses, current, turnNo, lastLine, question;
 const $ = (id) => document.getElementById(id);
+// On-screen keypad, so tablets don't need their own keyboard.
+const pad = Keypad.create($("keypad"), { inputs: () => [$("eq"), $("cx"), $("cy")], keys: [Keypad.key("+", " + "), Keypad.key("−", " − "), Keypad.letter("x"), Keypad.key("/"), Keypad.key("."), Keypad.key("y =", "y = ", "word")] });
 const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
 
 $("setupForm").addEventListener("submit", (e) => {

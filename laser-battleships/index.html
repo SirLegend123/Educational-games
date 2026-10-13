@@ -276,6 +276,7 @@
             <button type="submit" class="fire" id="fireBtn">Fire!</button>
           </div>
           <div id="reading" class="reading muted">Examples: <code>y = 3x − 2</code>, <code>y = −x + 4</code>, <code>y = 1/2x</code>, <code>y = 5</code></div>
+          <div id="keypad"></div>
           <div id="result" hidden></div>
           <div class="row" style="margin-top:12px">
             <button type="button" id="endTurnBtn" class="primary" hidden>End turn →</button>
@@ -313,6 +314,7 @@
 
 </main>
 
+<script src="../shared/keypad.js"></script>
 <script>
 "use strict";
 
@@ -335,6 +337,8 @@ let skill = "clever";      // computer skill in solo mode
 let cpuShot = null;        // the computer's latest shot, shown to the player
 
 const $ = (id) => document.getElementById(id);
+// On-screen keypad, so tablets don't need their own keyboard.
+const pad = Keypad.create($("keypad"), { inputs: () => [$("eq")], keys: [Keypad.key("+", " + "), Keypad.key("−", " − "), Keypad.letter("x"), Keypad.key("/"), Keypad.key("."), Keypad.key("y =", "y = ", "word")] });
 
 function show(id) {
   document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; });

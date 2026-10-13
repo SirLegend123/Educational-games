@@ -4,6 +4,8 @@ A collection of free browser-based educational games. Each game is a self-contai
 
 ## Games
 
+Every game where students type answers has an **on-screen keypad**, so tablets and phones don't need their own keyboard, which can cover half the screen. Each game shows the keys it needs: `y =`, `x`, `/` and `.` for straight lines; `n` for sequences; `²` for brackets; `/` and a space key for mixed numbers; `.` and `−` for standard form. The keypad types into whichever answer box was last tapped and hides itself between questions. A physical keyboard still works, and "Use my keyboard instead" switches the keypad off on that device (remembered across all games). The code is in `shared/keypad.js`.
+
 The home page groups the games by topic. Students can tap topics on or off to build their own revision page (remembered on their device), and each card shows their best score in that game. **Copy a link to these topics** gives a link like `https://sirlegend123.github.io/Educational-games/?topics=fractions,standard-form` that opens with just those topics, handy for setting revision for a class. The topic names are `primes`, `fractions`, `standard-form`, `expressions`, `equations`, `sequences` and `graphs`.
 
 | Topic | Game | Skill | Players |
@@ -79,8 +81,6 @@ Twelve checkpoints up a mountain. It starts with converting between mixed number
 ### Standard Form Bank Heist
 
 Twelve vaults: multiplying, dividing (each with and without adjusting the front number), negative powers, adding and subtracting with the same and different powers, and a final vault where the answer crosses into a new power. Answers are checked exactly, and the feedback spots the classic mistakes: not adjusting (e.g. `12 × 10⁹`), multiplying the powers, subtracting the powers the wrong way round, and adding the front numbers when the powers differ. The working shows each step, plus an ordinary-number check for addition and subtraction. Loot is £1,000 × the vault number, or half on a second try.
-
-Both bracket games have an **on-screen keypad** (digits, +, −, the letters the question needs, and a ² key), so students don't need to find ^ for powers. While it shows, phones and tablets don't pop up their own keyboard, and a physical keyboard still works. "Use my keyboard instead" switches it off, and the choice is remembered. The keypad lives in `shared/keypad.js`, ready for other games.
 
 ### Bracket Factory
 

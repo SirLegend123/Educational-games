@@ -89,6 +89,7 @@
             <input type="text" class="n" id="sfN" placeholder="n" spellcheck="false" aria-label="power of ten">
             <button type="submit" class="go" id="crackBtn">Crack it</button>
           </div>
+          <div id="keypad"></div>
           <div id="msg" class="error" style="margin-top:8px"></div>
           <div id="feedback" hidden></div>
           <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next vault →</button>
@@ -112,11 +113,14 @@
   </section>
 </main>
 
+<script src="../shared/keypad.js"></script>
 <script>
 "use strict";
 const VAULTS = 12;
 const BEST_KEY = "standardFormHeistBest";
 const $ = (id) => document.getElementById(id);
+// On-screen keypad, so tablets don't need their own keyboard.
+const pad = Keypad.create($("keypad"), { inputs: () => [$("sfA"), $("sfN")], keys: [Keypad.key("."), Keypad.key("−", "−")] });
 const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
 const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];

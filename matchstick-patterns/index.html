@@ -75,6 +75,7 @@
     <form id="form" class="panel" autocomplete="off">
       <p class="q" id="question"></p>
       <div class="answer"><span id="prefix"></span><input type="text" id="ans" spellcheck="false" autocapitalize="off"> <button type="submit" class="go" id="checkBtn">Check</button></div>
+      <div id="keypad"></div>
       <div id="msg" class="error" style="margin-top:8px"></div>
       <div id="feedback" hidden></div>
       <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next →</button>
@@ -97,6 +98,7 @@
 </main>
 
 <script src="../shared/lines.js"></script>
+<script src="../shared/keypad.js"></script>
 <script>
 "use strict";
 const { lin, parseNth, parseNumber, randInt, shuffle } = Lines;
@@ -158,6 +160,8 @@ const PATTERNS = [
 ];
 
 const $ = (id) => document.getElementById(id);
+// On-screen keypad, so tablets don't need their own keyboard.
+const pad = Keypad.create($("keypad"), { inputs: () => [$("ans")], keys: [Keypad.key("+", " + "), Keypad.key("−", " − "), Keypad.letter("n")] });
 const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
 const count = (p, n) => p.a * n + p.b;
 const rule = (p) => lin(p.a, p.b, "decimal", "n");

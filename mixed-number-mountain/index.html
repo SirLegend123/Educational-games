@@ -66,6 +66,7 @@
         <label for="ans" id="ansLabel">Your answer</label>
         <div class="answer"><input type="text" id="ans" spellcheck="false" autocapitalize="off" placeholder="e.g. 3 5/6"> <button type="submit" class="go" id="checkBtn">Check</button></div>
         <div class="preview" id="preview"></div>
+        <div id="keypad"></div>
         <div id="msg" class="error"></div>
         <div id="feedback" hidden></div>
         <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Climb on →</button>
@@ -88,12 +89,15 @@
   </section>
 </main>
 
+<script src="../shared/keypad.js"></script>
 <script>
 "use strict";
 const CHECKPOINTS = 12;
 const BEST_KEY = "mixedNumberMountainBest";
 const DENS = [2, 3, 4, 5, 6, 8];
 const $ = (id) => document.getElementById(id);
+// On-screen keypad, so tablets don't need their own keyboard.
+const pad = Keypad.create($("keypad"), { inputs: () => [$("ans")], keys: [Keypad.key("/"), Keypad.key("space", " ", "word")] });
 const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
 const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];

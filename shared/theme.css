@@ -87,21 +87,3 @@ svg.board { width: 100%; height: auto; display: block; user-select: none; touch-
   .shake { animation: none; }
 }
 
-/* On-screen maths keypad (shared/keypad.js) */
-.keypad-wrap { max-width: 360px; margin: 12px auto 0; }
-.keypad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.keypad .key {
-  font: inherit; font-size: 1.3rem; font-weight: 700; padding: 10px 0; min-height: 48px;
-  border-radius: 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
-  font-family: ui-monospace, "SF Mono", Consolas, monospace; touch-action: manipulation;
-}
-.keypad .key:active { transform: translateY(1px); filter: brightness(1.3); }
-.keypad .key.op { color: var(--gold); }
-.keypad .key.letter { color: var(--p1); font-style: italic; }
-.keypad .key.fn { color: var(--muted); font-family: system-ui, sans-serif; font-size: 1.1rem; }
-.keypad .key.enter { background: var(--good); color: #052e16; border-color: transparent; }
-.keypad-toggle {
-  display: block; margin: 8px auto 0; background: none; border: 0; color: var(--muted);
-  font-size: .9rem; font-weight: 600; padding: 4px 8px; cursor: pointer;
-}
-.keypad-toggle:hover { color: var(--text); }

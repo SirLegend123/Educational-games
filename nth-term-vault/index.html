@@ -77,6 +77,7 @@
           <div id="sequence"></div>
           <p class="lock-q" id="question"></p>
           <div class="answer"><span id="prefix"></span><input type="text" id="ans" spellcheck="false" autocapitalize="off"> <button type="submit" class="go" id="checkBtn">Unlock</button></div>
+          <div id="keypad"></div>
           <div id="msg" class="error" style="margin-top:8px"></div>
           <div id="feedback" hidden></div>
           <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next →</button>
@@ -101,6 +102,7 @@
 </main>
 
 <script src="../shared/lines.js"></script>
+<script src="../shared/keypad.js"></script>
 <script>
 "use strict";
 const { EPS, fmt, lin, parseNth, parseNumber, randInt, pick } = Lines;
@@ -112,6 +114,8 @@ const LEVELS = [
   "Going down", "Going down", "Decimal steps", "Boss safe: missing terms",
 ];
 const $ = (id) => document.getElementById(id);
+// On-screen keypad, so tablets don't need their own keyboard.
+const pad = Keypad.create($("keypad"), { inputs: () => [$("ans")], keys: [Keypad.key("+", " + "), Keypad.key("−", " − "), Keypad.letter("n"), Keypad.key("."), Keypad.key("/")] });
 const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
 const num = (v) => fmt(v, "decimal");
 const rule = (a, b) => lin(a, b, "decimal", "n");

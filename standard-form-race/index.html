@@ -89,6 +89,7 @@
           <p class="fact" id="fact"></p>
           <p class="task" id="task"></p>
           <div id="answerArea"></div>
+          <div id="keypad"></div>
           <div id="msg" class="error" style="margin-top:8px"></div>
           <div id="feedback" hidden></div>
           <div class="row" style="margin-top:12px">
@@ -117,6 +118,7 @@
   </section>
 </main>
 
+<script src="../shared/keypad.js"></script>
 <script>
 "use strict";
 // Real objects from tiny to huge. m is the front number (as text, so it stays
@@ -146,6 +148,8 @@ const KINDS = {
 const BEST_KEY = "standardFormRaceBest";
 
 const $ = (id) => document.getElementById(id);
+// On-screen keypad, so tablets don't need their own keyboard.
+const pad = Keypad.create($("keypad"), { inputs: () => [...$("answerArea").querySelectorAll("input")], keys: [Keypad.key("."), Keypad.key("−", "−")] });
 const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
 const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = randInt(0, i); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -332,6 +336,7 @@ function startMission() {
     area.querySelectorAll(".card").forEach((b) => b.addEventListener("click", () => pickCard(b)));
     $("checkBtn").hidden = true;
   }
+  pad.refresh();
   const first = area.querySelector("input");
   if (first) first.focus();
 }

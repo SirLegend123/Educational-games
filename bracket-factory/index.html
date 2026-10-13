@@ -196,7 +196,8 @@ function spot(q, poly) {
 }
 
 let qs, idx, tries, boxes, results;
-const pad = Keypad.create($("keypad"), { inputs: () => [$("ans")] });
+const bracketKeys = (letters) => [Keypad.key("+", " + "), Keypad.key("−", " − "), Keypad.letter(letters[0]), Keypad.key("²"), ...letters.slice(1).map(Keypad.letter)];
+const pad = Keypad.create($("keypad"), { inputs: () => [$("ans")], keys: bracketKeys(["x"]) });
 // The letters a question uses, e.g. ["x"] or ["a", "b"].
 const lettersOf = (q) => [...new Set(q.flatMap((p) => [p.k, ...p.inner]).flatMap((t) => Object.keys(Alg.varsOf(t.key))))].sort();
 
@@ -236,8 +237,7 @@ function startOrder() {
   $("ans").value = ""; $("ans").disabled = false; $("checkBtn").disabled = false;
   $("preview").innerHTML = ""; $("msg").textContent = "";
   $("feedback").hidden = true; $("nextBtn").hidden = true;
-  pad.setLetters(lettersOf(q).length ? lettersOf(q) : ["x"]);
-  $("keypad").hidden = false;
+  pad.setKeys(bracketKeys(lettersOf(q).length ? lettersOf(q) : ["x"]));
   renderBelt();
   $("ans").focus();
 }
@@ -290,7 +290,6 @@ $("form").addEventListener("submit", (e) => {
 
 function finish() {
   $("ans").disabled = true; $("checkBtn").disabled = true;
-  $("keypad").hidden = true;
   $("nextBtn").textContent = idx + 1 < ORDERS ? "Next order →" : "Clock off 🏁";
   $("nextBtn").hidden = false;
   renderBelt();
