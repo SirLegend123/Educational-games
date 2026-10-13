@@ -44,7 +44,7 @@
         <li>Watch the signs: −2(x − 5) = −2 × x + (−2) × (−5) = <strong>−2x + 10</strong>. A negative times a negative is a positive!</li>
         <li>x × x = <strong>x²</strong>, so x(x + 3) = <strong>x² + 3x</strong>.</li>
         <li><strong>Expand and simplify</strong>: expand each bracket, then collect like terms. With 5(x + 1) − 2(x − 3), the −2 multiplies <em>both</em> terms in the second bracket.</li>
-        <li>Type answers like <code>3x + 12</code> or <code>x^2 + 3x</code> (or use ² for squared).</li>
+        <li>Use the on-screen keypad (it has a <strong>²</strong> key for squared), or type answers like <code>3x + 12</code> or <code>x^2 + 3x</code>.</li>
       </ul>
       <p class="muted" style="margin:0">Right first time: 📦📦. Right on the second try: 📦. A wrong answer gets a hint, and a second wrong answer shows the working.</p>
       <p id="bestInfo" class="muted" style="margin:8px 0 0"></p>
@@ -65,6 +65,7 @@
       <label for="ans">Your expansion</label>
       <div class="answer"><input type="text" id="ans" spellcheck="false" autocapitalize="off" placeholder="e.g. 3x + 12"> <button type="submit" class="go" id="checkBtn">Check</button></div>
       <div class="preview" id="preview"></div>
+      <div id="keypad"></div>
       <div id="msg" class="error"></div>
       <div id="feedback" hidden></div>
       <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next order →</button>
@@ -87,6 +88,7 @@
 </main>
 
 <script src="../shared/algebra.js"></script>
+<script src="../shared/keypad.js"></script>
 <script>
 "use strict";
 const ORDERS = 12;
@@ -194,6 +196,9 @@ function spot(q, poly) {
 }
 
 let qs, idx, tries, boxes, results;
+const pad = Keypad.create($("keypad"), { inputs: () => [$("ans")] });
+// The letters a question uses, e.g. ["x"] or ["a", "b"].
+const lettersOf = (q) => [...new Set(q.flatMap((p) => [p.k, ...p.inner]).flatMap((t) => Object.keys(Alg.varsOf(t.key))))].sort();
 
 function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
 function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
@@ -231,6 +236,8 @@ function startOrder() {
   $("ans").value = ""; $("ans").disabled = false; $("checkBtn").disabled = false;
   $("preview").innerHTML = ""; $("msg").textContent = "";
   $("feedback").hidden = true; $("nextBtn").hidden = true;
+  pad.setLetters(lettersOf(q).length ? lettersOf(q) : ["x"]);
+  $("keypad").hidden = false;
   renderBelt();
   $("ans").focus();
 }
@@ -283,6 +290,7 @@ $("form").addEventListener("submit", (e) => {
 
 function finish() {
   $("ans").disabled = true; $("checkBtn").disabled = true;
+  $("keypad").hidden = true;
   $("nextBtn").textContent = idx + 1 < ORDERS ? "Next order →" : "Clock off 🏁";
   $("nextBtn").hidden = false;
   renderBelt();

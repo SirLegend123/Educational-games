@@ -59,7 +59,7 @@
         <li><strong>Step 1:</strong> multiply each term on the left by each term on the top. Keep the signs: +3 × −5 = −15.</li>
         <li><strong>Step 2:</strong> add up all four boxes and collect the like terms (the two x terms): x² + 5x + 3x + 15 = <strong>x² + 8x + 15</strong>.</li>
         <li>Watch out for squares: (x + 4)² means (x + 4)(x + 4), so the answer is <strong>x² + 8x + 16</strong>, not x² + 16!</li>
-        <li>Type x² as <code>x^2</code> or <code>x²</code>.</li>
+        <li>Use the on-screen keypad: tap a box, then type. It has a <strong>²</strong> key, so x² is just <strong>x</strong> then <strong>²</strong>. (You can also type <code>x^2</code>.)</li>
       </ul>
       <label class="check"><input type="checkbox" id="noGrid"> Expert mode: no grid, just type the answer</label>
       <p class="muted" style="margin:10px 0 0">Each lock is worth 🔑🔑: one for the grid right first time, and one for the final answer right first time. A wrong answer gets a hint, and a second wrong answer shows the working.</p>
@@ -93,6 +93,7 @@
         <div id="msg" class="error"></div>
         <div id="feedback" hidden></div>
       </form>
+      <div id="keypad"></div>
       <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next lock →</button>
     </div>
   </section>
@@ -113,6 +114,7 @@
 </main>
 
 <script src="../shared/algebra.js"></script>
+<script src="../shared/keypad.js"></script>
 <script>
 "use strict";
 const LOCKS = 12;
@@ -159,6 +161,7 @@ function questionHtml(q, html = true) {
 const head = (t, i) => { const s = termText(t.coef, t.key, true); return i > 0 && t.coef > 0 ? "+" + s : s; };
 
 let qs, idx, gridTries, finalTries, keys, results, expert, gridDone;
+const pad = Keypad.create($("keypad"), { inputs: () => [...$("grid").querySelectorAll("input"), $("ans")] });
 
 function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
 function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
@@ -208,6 +211,8 @@ function startLock() {
   $("ans").value = ""; $("ans").disabled = false; $("checkBtn").disabled = false;
   $("preview").innerHTML = ""; $("msg").textContent = "";
   $("feedback").hidden = true; $("nextBtn").hidden = true;
+  $("keypad").hidden = false;
+  pad.refresh();
   renderLocks();
   (skipGrid ? $("ans") : g.querySelector("input")).focus();
 }
@@ -343,6 +348,7 @@ $("finalForm").addEventListener("submit", (e) => {
 function finish() {
   const q = qs[idx];
   $("ans").disabled = true; $("checkBtn").disabled = true;
+  $("keypad").hidden = true;
   results[idx] = { q, got: q.gridKey + q.finalKey };
   $("nextBtn").textContent = idx + 1 < LOCKS ? "Next lock →" : "Break free 🎉";
   $("nextBtn").hidden = false;

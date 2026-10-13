@@ -80,6 +80,8 @@ Twelve checkpoints up a mountain. It starts with converting between mixed number
 
 Twelve vaults: multiplying, dividing (each with and without adjusting the front number), negative powers, adding and subtracting with the same and different powers, and a final vault where the answer crosses into a new power. Answers are checked exactly, and the feedback spots the classic mistakes: not adjusting (e.g. `12 × 10⁹`), multiplying the powers, subtracting the powers the wrong way round, and adding the front numbers when the powers differ. The working shows each step, plus an ordinary-number check for addition and subtraction. Loot is £1,000 × the vault number, or half on a second try.
 
+Both bracket games have an **on-screen keypad** (digits, +, −, the letters the question needs, and a ² key), so students don't need to find ^ for powers. While it shows, phones and tablets don't pop up their own keyboard, and a physical keyboard still works. "Use my keyboard instead" switches it off, and the choice is remembered. The keypad lives in `shared/keypad.js`, ready for other games.
+
 ### Bracket Factory
 
 Twelve orders on a factory conveyor belt, each a single bracket to expand. They progress through a number outside, minus signs inside, a negative outside, x or 2x outside (making x² terms), two letters, a negative x outside, then "expand and simplify" with two brackets, including subtracting a bracket and the double-negative trap in `6(2x + 7) − 2(x − 9)`. Answers like `3x + 12` or `x^2 + 3x` are read in any order. An answer with uncollected like terms is sent back without counting as wrong. Feedback spots multiplying only the first term and sign errors, and the working shows every multiplication.
