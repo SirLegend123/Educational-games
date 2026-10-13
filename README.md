@@ -10,7 +10,7 @@ A collection of free browser-based educational games. Each game is a self-contai
 
 ### Laser Battleships
 
-Each player secretly places two ships on a coordinate grid. On their turn, a player types the equation of a straight line, such as `y = 2x + 1`, and a laser fires along that line across the opponent's grid. To sink a ship, the laser must pass **through two sides** of it. Just touching a corner or running along an edge only *grazes* it. The first player to sink both enemy ships wins.
+Each player secretly places two ships on a coordinate grid. On their turn, a player types the equation of a straight line, such as `y = 2x + 1`, and a laser fires along that line across the opponent's grid. Every time a laser crosses a side of a ship it makes a hole: going right through a ship (in one side, out another) makes **2 holes**, and a graze (touching a corner or running along an edge) makes **1 hole**. A ship sinks when it has **4 holes**. Holes are shown on the grid so players can aim their next shot, and a hole in the same place doesn't count twice. The first player to sink both enemy ships wins.
 
 Teaching features:
 

@@ -90,6 +90,7 @@
   .ship.sunk { fill: var(--sunk); stroke: #fff3c4; }
   .ship.preview { fill: rgba(61, 220, 255, .45); stroke: var(--p1); stroke-dasharray: 5 4; }
   .ship.invalid { fill: rgba(248, 113, 113, .45); stroke: var(--bad); }
+  .hole { fill: #0b1630; stroke: var(--sunk); stroke-width: 3; }
   .laser { stroke-width: 3; stroke-linecap: round; opacity: .55; }
   .laser.p0 { stroke: var(--p0); }
   .laser.p1 { stroke: var(--p1); }
@@ -117,7 +118,7 @@
   .reading.error { color: var(--bad); }
   .result { border-radius: 12px; padding: 12px 14px; margin-top: 12px; }
   .result.sunk { background: rgba(255, 183, 3, .15); border: 1px solid var(--sunk); }
-  .result.graze { background: rgba(251, 191, 36, .1); border: 1px solid var(--warn); }
+  .result.hit { background: rgba(251, 191, 36, .1); border: 1px solid var(--warn); }
   .result.miss { background: rgba(163, 179, 218, .1); border: 1px solid #3a5291; }
   .result strong { font-size: 1.15rem; }
   .fleet-status { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 0; padding: 0; list-style: none; }
@@ -127,7 +128,7 @@
   ol.history li { margin-bottom: 2px; }
   .tag { font-family: system-ui, sans-serif; font-size: .8rem; font-weight: 700; padding: 0 6px; border-radius: 6px; margin-left: 6px; }
   .tag.sunk { background: var(--sunk); color: #2b1d00; }
-  .tag.graze { background: var(--warn); color: #2b1d00; }
+  .tag.hit { background: var(--warn); color: #2b1d00; }
   .tag.miss { background: #2f4a8f; color: var(--text); }
   .handover { text-align: center; padding: 60px 18px; }
   .handover .big { font-size: 4rem; line-height: 1; margin-bottom: 12px; }
@@ -157,22 +158,22 @@
       <ol class="rules">
         <li>Each player secretly places <strong>two ships</strong> on a coordinate grid. Pass the device between turns and don't peek!</li>
         <li>On your turn, type a line such as <code>y = 2x + 1</code> and press <strong>Fire</strong>. Your laser follows that line across your opponent's grid.</li>
-        <li>To <strong>sink</strong> a ship, the laser must pass <strong>through two sides</strong> of the ship, going in one side and out another.</li>
-        <li>If the laser only touches a corner or runs along an edge, the ship is <strong>grazed</strong> but not sunk. That tells you a ship is close by!</li>
+        <li>Every time a laser crosses a side of a ship, it makes a <strong>hole</strong>. Going right through a ship (in one side and out another) makes <strong>2 holes</strong>. Only touching a corner or running along an edge (a graze) makes <strong>1 hole</strong>.</li>
+        <li>A ship <strong>sinks when it has 4 holes</strong>. Holes show up on the grid, so use them to aim your next laser!</li>
         <li>The first player to sink both enemy ships wins.</li>
       </ol>
       <div class="rule-pic" aria-hidden="true">
         <figure>
-          <svg viewBox="0 0 120 90"><rect x="35" y="35" width="50" height="20" rx="3" fill="#ffb703"/><line x1="10" y1="80" x2="110" y2="10" stroke="#ff4d6d" stroke-width="3"/></svg>
-          <figcaption>Sunk: in one side, out another</figcaption>
+          <svg viewBox="0 0 120 90"><rect x="35" y="35" width="50" height="20" rx="3" fill="#ffb703"/><line x1="10" y1="80" x2="110" y2="10" stroke="#ff4d6d" stroke-width="3"/><circle cx="45.7" cy="55" r="4.5" fill="#0b1630" stroke="#ffb703" stroke-width="2.5"/><circle cx="74.3" cy="35" r="4.5" fill="#0b1630" stroke="#ffb703" stroke-width="2.5"/></svg>
+          <figcaption>Through the ship: 2 holes</figcaption>
         </figure>
         <figure>
-          <svg viewBox="0 0 120 90"><rect x="35" y="35" width="50" height="20" rx="3" fill="#c9d3ea"/><line x1="5" y1="65" x2="70" y2="0" stroke="#ff4d6d" stroke-width="3"/></svg>
-          <figcaption>Grazed: just touches a corner</figcaption>
+          <svg viewBox="0 0 120 90"><rect x="35" y="35" width="50" height="20" rx="3" fill="#c9d3ea"/><line x1="5" y1="65" x2="70" y2="0" stroke="#ff4d6d" stroke-width="3"/><circle cx="35" cy="35" r="4.5" fill="#0b1630" stroke="#ffb703" stroke-width="2.5"/></svg>
+          <figcaption>Graze (touches a corner): 1 hole</figcaption>
         </figure>
         <figure>
           <svg viewBox="0 0 120 90"><rect x="35" y="35" width="50" height="20" rx="3" fill="#c9d3ea"/><line x1="10" y1="20" x2="110" y2="20" stroke="#ff4d6d" stroke-width="3"/></svg>
-          <figcaption>Miss</figcaption>
+          <figcaption>Miss: no holes</figcaption>
         </figure>
       </div>
     </div>
@@ -246,7 +247,7 @@
       <div class="panel">
         <h2 id="enemyLabel">Enemy waters</h2>
         <svg id="enemyBoard" class="board" role="img" aria-label="Enemy grid showing your lasers"></svg>
-        <p class="muted" style="margin:8px 0 0">Enemy ships left:</p>
+        <p class="muted" style="margin:8px 0 0">Enemy fleet:</p>
         <ul id="enemyFleet" class="fleet-status"></ul>
       </div>
       <div>
@@ -435,9 +436,12 @@ function explain(m, c) {
 
 /* ---------- Geometry ---------- */
 
-// 'sunk' if the line passes through the inside of the ship (crossing two sides),
-// 'graze' if it only touches a corner or runs along an edge, otherwise 'miss'.
-function hitTest(ship, m, c) {
+const HOLES_TO_SINK = 4;
+
+// The holes y = mx + c makes in a ship: 2 points if it passes through (in one
+// side, out another), 1 if it only grazes a corner or runs along an edge,
+// none if it misses.
+function holePoints(ship, m, c) {
   const corners = [
     [ship.x, ship.y], [ship.x + ship.w, ship.y],
     [ship.x, ship.y + ship.h], [ship.x + ship.w, ship.y + ship.h],
@@ -449,9 +453,29 @@ function hitTest(ship, m, c) {
     else if (d < -EPS) below = true;
     else on = true;
   }
-  if (above && below) return "sunk";
-  if (on) return "graze";
-  return "miss";
+  if (!above && !below) return [];         // impossible for a real ship
+  if (!(above && below) && !on) return [];  // miss
+
+  const x0 = ship.x, x1 = ship.x + ship.w, y0 = ship.y, y1 = ship.y + ship.h;
+  const pts = [];
+  const add = (x, y) => {
+    x = +x.toFixed(6); y = +y.toFixed(6);
+    if (!pts.some((p) => Math.abs(p.x - x) < 1e-6 && Math.abs(p.y - y) < 1e-6)) pts.push({ x, y });
+  };
+  for (const x of [x0, x1]) {
+    const y = m * x + c;
+    if (y >= y0 - EPS && y <= y1 + EPS) add(x, y);
+  }
+  if (Math.abs(m) > EPS) {
+    for (const y of [y0, y1]) {
+      const x = (y - c) / m;
+      if (x >= x0 - EPS && x <= x1 + EPS) add(x, y);
+    }
+  }
+  if (above && below) return pts.slice(0, 2);
+  // Graze: a single corner, or a whole edge (count one hole in its middle).
+  if (pts.length === 1) return pts;
+  return [{ x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 }];
 }
 
 // The visible part of y = mx + c inside the grid, or null.
@@ -486,7 +510,7 @@ function el(tag, attrs, parent) {
   return e;
 }
 
-function drawBoard(svg, { ships = [], shots = [], preview = null, aim = null, animateLast = false } = {}) {
+function drawBoard(svg, { ships = [], shots = [], holes = [], preview = null, aim = null, animateLast = false } = {}) {
   svg.innerHTML = "";
   const size = 2 * N * CELL + 2 * PAD;
   svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
@@ -534,6 +558,10 @@ function drawBoard(svg, { ships = [], shots = [], preview = null, aim = null, an
       class: cls, pathLength: 1,
     }, svg);
   });
+
+  for (const h of holes) {
+    el("circle", { cx: sx(h.x), cy: sy(h.y), r: 6, class: "hole" }, svg);
+  }
 
   if (aim) {
     const seg = clipLine(aim.m, aim.c);
@@ -590,7 +618,7 @@ function candidateShip(gx, gy) {
   let y = Math.floor(gy) - (placing.horiz ? 0 : Math.floor((type.len - 1) / 2));
   x = Math.max(-N, Math.min(N - w, x));
   y = Math.max(-N, Math.min(N - h, y));
-  const ship = { name: type.name, x, y, w, h, sunk: false };
+  const ship = { name: type.name, x, y, w, h, sunk: false, holes: [] };
   ship.invalid = placing.ships.some((s) => overlaps(s, ship));
   return ship;
 }
@@ -649,7 +677,7 @@ function randomFleet() {
       const w = horiz ? type.len : 1, h = horiz ? 1 : type.len;
       const x = -N + Math.floor(Math.random() * (2 * N - w + 1));
       const y = -N + Math.floor(Math.random() * (2 * N - h + 1));
-      const ship = { name: type.name, x, y, w, h, sunk: false };
+      const ship = { name: type.name, x, y, w, h, sunk: false, holes: [] };
       if (!fleet.some((s) => overlaps(s, ship))) { fleet.push(ship); break; }
     }
   }
@@ -714,19 +742,22 @@ function renderTurn(animateLast, aim = null) {
   drawBoard($("enemyBoard"), {
     ships: foe.ships.filter((s) => s.sunk),
     shots: me.shots.map((s) => ({ ...s, owner: current })),
+    holes: foe.ships.flatMap((s) => s.holes),
     animateLast,
     aim,
   });
   drawBoard($("myBoard"), {
     ships: me.ships,
     shots: foe.shots.map((s) => ({ ...s, owner: 1 - current })),
+    holes: me.ships.flatMap((s) => s.holes),
   });
   $("enemyFleet").innerHTML = foe.ships.map((s) =>
-    `<li class="${s.sunk ? "down" : ""}">${s.name} (${Math.max(s.w, s.h)})</li>`).join("");
+    `<li class="${s.sunk ? "down" : ""}">${s.name}: ${s.holes.length}/${HOLES_TO_SINK} holes</li>`).join("");
 
-  const labels = { sunk: "SUNK", graze: "GRAZED", miss: "miss" };
+  const label = (s) => s.result === "sunk" ? "SUNK"
+    : s.result === "hit" ? `${s.newHoles} hole${s.newHoles === 1 ? "" : "s"}` : "miss";
   $("history").innerHTML = me.shots.map((s) =>
-    `<li>${s.text}<span class="tag ${s.result}">${labels[s.result]}</span></li>`).join("");
+    `<li>${s.text}<span class="tag ${s.result}">${label(s)}</span></li>`).join("");
   $("historyEmpty").hidden = me.shots.length > 0;
 }
 
@@ -759,17 +790,28 @@ $("fireForm").addEventListener("submit", (e) => {
   }
 
   const me = players[current], foe = players[1 - current];
-  const sunkNow = [];
-  let grazed = 0;
+  const text = formatEq(p.m, p.c);
+  if (me.shots.some((s) => Math.abs(s.m - p.m) < EPS && Math.abs(s.c - p.c) < EPS)) {
+    reading.className = "reading error";
+    reading.textContent = `You've already fired ${text}. Try a different line.`;
+    return;
+  }
+
+  const sunkNow = [], damage = [];
+  let newHoles = 0, touched = 0;
   for (const ship of foe.ships) {
     if (ship.sunk) continue;
-    const h = hitTest(ship, p.m, p.c);
-    if (h === "sunk") { ship.sunk = true; sunkNow.push(ship); }
-    else if (h === "graze") grazed++;
+    const pts = holePoints(ship, p.m, p.c);
+    if (!pts.length) continue;
+    touched++;
+    const fresh = pts.filter((q) => !ship.holes.some((h) => Math.abs(h.x - q.x) < 1e-6 && Math.abs(h.y - q.y) < 1e-6));
+    ship.holes.push(...fresh);
+    newHoles += fresh.length;
+    if (fresh.length) damage.push({ ship, kind: pts.length === 2 ? "through" : "graze", count: fresh.length });
+    if (ship.holes.length >= HOLES_TO_SINK) { ship.sunk = true; sunkNow.push(ship); }
   }
-  const result = sunkNow.length ? "sunk" : grazed ? "graze" : "miss";
-  const text = formatEq(p.m, p.c);
-  me.shots.push({ m: p.m, c: p.c, text, result });
+  const result = sunkNow.length ? "sunk" : newHoles ? "hit" : "miss";
+  me.shots.push({ m: p.m, c: p.c, text, result, newHoles });
   shotFired = true;
 
   $("eq").disabled = true;
@@ -778,13 +820,20 @@ $("fireForm").addEventListener("submit", (e) => {
   reading.textContent = "";
   renderTurn(true);
 
+  const plural = (n) => `${n} hole${n === 1 ? "" : "s"}`;
+  const describe = (d) => d.kind === "through"
+    ? `Your laser went right through the ${d.ship.name}${d.count === 2 ? "" : " (one of those holes was already there)"}: ${plural(d.count)}. It now has ${d.ship.holes.length}/${HOLES_TO_SINK}.`
+    : `Your laser grazed the ${d.ship.name}: 1 hole. It now has ${d.ship.holes.length}/${HOLES_TO_SINK}.`;
   let headline, detail;
   if (result === "sunk") {
-    headline = `💥 Direct hit! You sank the ${sunkNow.map((s) => s.name).join(" and the ")}!`;
-    detail = "Your laser went in one side of the ship and out another.";
-  } else if (result === "graze") {
-    headline = "⚠️ Grazed!";
-    detail = "Your laser touched a ship's corner or ran along its edge, but didn't go through it. A ship is right next to your line!";
+    headline = `💥 You sank the ${sunkNow.map((s) => s.name).join(" and the ")}!`;
+    detail = damage.map(describe).join(" ");
+  } else if (result === "hit") {
+    headline = `🎯 Hit! ${plural(newHoles)} made.`;
+    detail = damage.map(describe).join(" ");
+  } else if (touched) {
+    headline = "🌊 No new damage.";
+    detail = "Your laser went through holes that were already there.";
   } else {
     headline = "🌊 Miss.";
     detail = "Your laser didn't touch any ships. There are no ships along that line.";
@@ -823,6 +872,7 @@ function showWin() {
     drawBoard($("finalBoard" + i), {
       ships: players[i].ships,
       shots: players[1 - i].shots.map((s) => ({ ...s, owner: 1 - i })),
+      holes: players[i].ships.flatMap((s) => s.holes),
     });
   }
   show("win");
