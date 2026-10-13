@@ -143,15 +143,18 @@
   @media (max-width: 700px) { .boards-2 { grid-template-columns: 1fr; } }
   kbd { background: var(--panel-2); border-radius: 5px; padding: 0 6px; font-size: .85em; }
   [hidden] { display: none !important; }
+  .home-link { display: inline-block; margin-bottom: 10px; color: var(--muted); text-decoration: none; font-size: .95rem; }
+  .home-link:hover { color: var(--text); }
 </style>
 </head>
 <body>
 <main>
+  <a class="home-link" id="homeLink" href="../">← All games</a>
 
   <!-- START -->
   <section id="start" class="screen">
     <h1>⚡ Laser Battleships</h1>
-    <p class="muted">A two-player game about straight-line graphs. Hide your ships, then try to sink your opponent's fleet by firing lasers. To fire, type the equation of a straight line in the form <strong>y = mx + c</strong>.</p>
+    <p class="muted">A game about straight-line graphs for two players, or one player against the computer. Hide your ships, then try to sink your opponent's fleet by firing lasers. To fire, type the equation of a straight line in the form <strong>y = mx + c</strong>.</p>
 
     <div class="panel">
       <h2>How to play</h2>
@@ -979,6 +982,12 @@ function showWin() {
 }
 
 $("rematchBtn").addEventListener("click", () => newGame(lastSettings));
+
+// Leaving mid-game loses it, so check first.
+$("homeLink").addEventListener("click", (e) => {
+  const playing = !$("place").hidden || !$("handover").hidden || !$("turn").hidden;
+  if (playing && !confirm("Leave this game and go back to all games? The game will be lost.")) e.preventDefault();
+});
 $("newGameBtn").addEventListener("click", () => show("start"));
 </script>
 </body>
