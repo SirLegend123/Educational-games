@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standard Form Space Race</title>
+<meta name="description" content="Fly a rocket from the size of an atom to the size of the galaxy by writing, reading, fixing and ordering numbers in standard form.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .track-wrap { padding: 10px 12px 4px; overflow-x: auto; }
+  svg.track { width: 100%; min-width: 680px; height: auto; display: block; overflow: visible; }
+  .track-line { stroke: var(--line); stroke-width: 4; stroke-linecap: round; }
+  .track-done { stroke: var(--gold); stroke-width: 4; stroke-linecap: round; }
+  .stop-icon { font-size: 26px; text-anchor: middle; dominant-baseline: central; }
+  .stop-icon.future { opacity: .35; }
+  .stop-pow { fill: var(--muted); font-size: 12px; text-anchor: middle; font-family: system-ui, sans-serif; }
+  .rocket { font-size: 30px; text-anchor: middle; dominant-baseline: central; transition: transform .9s cubic-bezier(.3, .7, .3, 1); }
+  @media (prefers-reduced-motion: reduce) { .rocket { transition: none; } }
+  .hud { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 12px; font-weight: 700; }
+  .hud .val { font-variant-numeric: tabular-nums; }
+  .fuel { flex: 1; min-width: 160px; max-width: 320px; height: 16px; background: var(--panel-2); border-radius: 999px; overflow: hidden; }
+  .fuel > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--gold), var(--good)); transition: width .6s ease; }
+  .mission { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 600px) { .mission { grid-template-columns: 1fr; } .big-icon { font-size: 3.2rem !important; } }
+  .big-icon { font-size: 4.5rem; line-height: 1; text-align: center; }
+  .fact { font-size: 1.15rem; }
+  .value { font-size: 1.5rem; font-weight: 800; color: var(--gold); white-space: nowrap; }
+  .value sup, .sf sup { font-size: .65em; }
+  .task { font-weight: 700; margin: 10px 0; }
+  .sf-input { display: flex; align-items: flex-start; gap: 8px; font-size: 1.5rem; font-weight: 700; flex-wrap: nowrap; }
+  .sf-input input { font-size: 1.3rem; text-align: center; }
+  .sf-input .a { width: 6.5em; margin-top: 12px; }
+  .sf-input .ten { margin-top: 18px; }
+  .sf-input .n { width: 3.6em; font-size: 1.05rem; padding: 6px 8px; }
+  .ord-input { font-size: 1.3rem; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .card {
+    background: var(--panel-2); border: 2px solid var(--line); border-radius: 12px; padding: 10px; cursor: pointer;
+    text-align: center; font: inherit; color: var(--text); position: relative;
+  }
+  .card .emoji { font-size: 2rem; display: block; }
+  .card .sf { font-weight: 800; font-size: 1.1rem; white-space: nowrap; }
+  .card .name { font-size: .85rem; color: var(--muted); }
+  .card.chosen { border-color: var(--gold); opacity: .7; }
+  .card .order { position: absolute; top: 6px; left: 8px; background: var(--gold); color: #2b1d00; border-radius: 999px; width: 24px; height: 24px; display: grid; place-items: center; font-weight: 800; font-size: .85rem; }
+  ol.steps { margin: 6px 0 0; padding-left: 1.4em; }
+  .rules li { margin-bottom: 6px; }
+  table.results { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.results td, table.results th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🚀 Standard Form Space Race</h1>
+    <p class="muted">Fly your rocket from the size of an atom ⚛️ all the way out to the size of our galaxy 🌌. At each stop there's a standard form mission. Complete it to fuel up and blast off to the next stop!</p>
+    <div class="panel">
+      <h2>Standard form reminder</h2>
+      <ul class="rules">
+        <li>A number in standard form looks like <strong>a × 10<sup>n</sup></strong>, where <strong>1 ≤ a &lt; 10</strong> and n is a whole number.</li>
+        <li>Big numbers have <strong>positive</strong> powers: 384 400 000 = 3.844 × 10<sup>8</sup>.</li>
+        <li>Small numbers (less than 1) have <strong>negative</strong> powers: 0.000008 = 8 × 10<sup>−6</sup>.</li>
+        <li>To <strong>compare</strong> numbers in standard form, look at the powers first. If they're the same, compare the front numbers.</li>
+      </ul>
+      <h2 style="margin-top:14px">Missions</h2>
+      <ul class="rules">
+        <li>✍️ <strong>Write it</strong> in standard form &nbsp; 🔢 <strong>Read it</strong> as an ordinary number &nbsp; 🔧 <strong>Fix it</strong> when it's not quite standard form &nbsp; 📏 <strong>Order</strong> objects by size</li>
+        <li>Right first time: ⛽⛽⛽ fuel. Right on the second try (after a hint): ⛽. After two wrong tries you'll see the answer.</li>
+      </ul>
+      <p id="bestInfo" class="muted" style="margin:0"></p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Launch! 🚀</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="panel track-wrap"><svg id="track" class="track" viewBox="0 0 1000 92" role="img" aria-label="Your journey from atom to galaxy"></svg></div>
+    <div class="hud">
+      <span>Mission <span class="val" id="missionNum">1</span> of <span id="missionTotal"></span></span>
+      <span>⛽ Fuel <span class="val" id="fuelVal">0</span></span>
+      <div class="fuel" aria-hidden="true"><div id="fuelBar"></div></div>
+    </div>
+    <form id="form" class="panel" autocomplete="off">
+      <div class="mission">
+        <div class="big-icon" id="icon"></div>
+        <div>
+          <p class="muted" id="kind" style="margin-bottom:4px"></p>
+          <p class="fact" id="fact"></p>
+          <p class="task" id="task"></p>
+          <div id="answerArea"></div>
+          <div id="msg" class="error" style="margin-top:8px"></div>
+          <div id="feedback" hidden></div>
+          <div class="row" style="margin-top:12px">
+            <button type="submit" class="go" id="checkBtn">Check</button>
+            <button type="button" id="resetOrder" hidden>Start order again</button>
+            <span class="spacer"></span>
+            <button type="button" class="primary" id="nextBtn" hidden>Blast off →</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🌌🚀</div>
+      <h1>You reached the edge of the galaxy!</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">Fly again (new missions)</button>
+    </div>
+    <div class="panel">
+      <h2>Your journey</h2>
+      <table class="results"><thead><tr><th>Stop</th><th>Size</th><th>Mission</th><th>Fuel</th></tr></thead><tbody id="resultRows"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+// Real objects from tiny to huge. m is the front number (as text, so it stays
+// exact) and e the power of 10, in metres. Values are approximate.
+const STOPS = [
+  { name: "a hydrogen atom", icon: "⚛️", m: "1", e: -10, fact: "A hydrogen atom is about", unit: "m across" },
+  { name: "a flu virus", icon: "🦠", m: "1.2", e: -7, fact: "A flu virus is about", unit: "m across" },
+  { name: "a red blood cell", icon: "🩸", m: "8", e: -6, fact: "A red blood cell is about", unit: "m across" },
+  { name: "a human hair", icon: "💇", m: "7", e: -5, fact: "A human hair is about", unit: "m wide" },
+  { name: "an ant", icon: "🐜", m: "4", e: -3, fact: "A small ant is about", unit: "m long" },
+  { name: "a person", icon: "🧍", m: "1.7", e: 0, fact: "A person is about", unit: "m tall" },
+  { name: "a blue whale", icon: "🐋", m: "3", e: 1, fact: "A blue whale is about", unit: "m long" },
+  { name: "the Eiffel Tower", icon: "🗼", m: "3.3", e: 2, fact: "The Eiffel Tower is about", unit: "m tall" },
+  { name: "Mount Everest", icon: "🏔️", m: "8.849", e: 3, fact: "Mount Everest is about", unit: "m high" },
+  { name: "the Earth", icon: "🌍", m: "1.2742", e: 7, fact: "The Earth is about", unit: "m across" },
+  { name: "the Moon's distance", icon: "🌙", m: "3.844", e: 8, fact: "The Moon is about", unit: "m from the Earth" },
+  { name: "the Sun's distance", icon: "☀️", m: "1.496", e: 11, fact: "The Sun is about", unit: "m from the Earth" },
+  { name: "a light-year", icon: "✨", m: "9.461", e: 15, fact: "Light travels about", unit: "m in a year (a light-year)" },
+  { name: "the Milky Way", icon: "🌌", m: "9.5", e: 20, fact: "Our galaxy, the Milky Way, is about", unit: "m across" },
+];
+const KINDS = {
+  to: "✍️ Write it in standard form",
+  from: "🔢 Read it as an ordinary number",
+  fix: "🔧 Fix the rocket computer",
+  order: "📏 Put them in order",
+};
+const BEST_KEY = "standardFormRaceBest";
+
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = randInt(0, i); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const minus = (n) => (n < 0 ? "−" + -n : String(n));
+
+/* ---------- Exact number handling (as digit strings) ---------- */
+
+// Normalise a decimal string into { digits, exp } so that the value is
+// 0.d1d2d3... × 10^(exp+1), i.e. d1.d2d3... × 10^exp. Returns null if invalid.
+function normalise(str) {
+  const s = str.replace(/[\s,  ]/g, "");
+  if (!/^\d*\.?\d+$|^\d+\.$/.test(s)) return null;
+  const [intPart, frac = ""] = s.split(".");
+  const all = (intPart + frac).replace(/^0+/, "");
+  if (!all.replace(/0+$/, "")) return { digits: "0", exp: 0 };
+  const leadingZeros = (intPart + frac).length - all.length;
+  const exp = intPart.length - leadingZeros - 1;
+  return { digits: all.replace(/0+$/, ""), exp };
+}
+const same = (a, b) => a && b && a.digits === b.digits && a.exp === b.exp;
+const stopValue = (s) => { const v = normalise(s.m); return { digits: v.digits, exp: v.exp + s.e }; };
+
+// m × 10^e written out in full, e.g. ("3.844", 8) -> "384 400 000".
+function ordinary(m, e, group = true) {
+  const v = normalise(m);
+  const digits = v.digits;
+  const point = v.exp + e + 1;   // digits before the decimal point
+  let out;
+  if (point <= 0) out = "0." + "0".repeat(-point) + digits;
+  else if (point >= digits.length) out = digits + "0".repeat(point - digits.length);
+  else out = digits.slice(0, point) + "." + digits.slice(point);
+  if (!group) return out;
+  const [i, f] = out.split(".");
+  const gi = i.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return f !== undefined ? gi + "." + f : gi;
+}
+const sfHtml = (m, e) => `${m} × 10<sup>${minus(e)}</sup>`;
+const sfText = (m, e) => `${m} × 10^${e}`;
+
+/* ---------- Missions ---------- */
+
+function planMissions() {
+  const used = { to: 0, from: 0, fix: 0, order: 0 };
+  const plan = [];
+  let prev = null;
+  for (let i = 1; i < STOPS.length; i++) {
+    const s = STOPS[i];
+    const allowed = Object.keys(KINDS).filter((k) => k !== prev && !(k === "from" && Math.abs(s.e) > 11));
+    const least = Math.min(...allowed.map((k) => used[k]));
+    const options = allowed.filter((k) => used[k] === least);
+    const kind = options[randInt(0, options.length - 1)];
+    used[kind]++;
+    prev = kind;
+    plan.push(makeMission(i, kind));
+  }
+  return plan;
+}
+
+function makeMission(i, kind) {
+  const s = STOPS[i];
+  const mission = { stop: i, kind };
+  if (kind === "fix") {
+    // Show the value with the front number 10 or 100 times too big, or too small.
+    const shift = [1, 2, -1][randInt(0, 2)];
+    mission.wrongA = ordinary(s.m, shift, false);
+    mission.wrongN = s.e - shift;
+  }
+  if (kind === "order") {
+    const others = shuffle(STOPS.map((_, j) => j).filter((j) => j !== i)).slice(0, 3);
+    mission.cards = shuffle([i, ...others]);
+  }
+  return mission;
+}
+
+let missions, mIdx, tries, fuel, results, orderPicked;
+
+function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
+function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
+function showBest() {
+  const b = loadBest();
+  $("bestInfo").textContent = b !== null ? `Your best on this device: ${b} fuel out of ${3 * (STOPS.length - 1)}.` : "";
+}
+showBest();
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", startGame);
+
+function startGame() {
+  missions = planMissions();
+  mIdx = 0;
+  fuel = 0;
+  results = [];
+  $("missionTotal").textContent = missions.length;
+  show("game");
+  drawTrack(0);
+  startMission();
+}
+
+/* ---------- Journey track ---------- */
+
+const MIN_E = -10, MAX_E = 21;
+const trackX = (e) => 40 + (e - MIN_E) / (MAX_E - MIN_E) * 920;
+
+function drawTrack(reached) {
+  const svg = $("track");
+  svg.innerHTML = "";
+  const NS = "http://www.w3.org/2000/svg";
+  const mk = (tag, attrs, text) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    svg.appendChild(e);
+    return e;
+  };
+  const stopX = (i) => trackX(stopValue(STOPS[i]).exp);
+  mk("line", { x1: trackX(MIN_E), y1: 56, x2: trackX(MAX_E) - 20, y2: 56, class: "track-line" });
+  mk("line", { x1: trackX(MIN_E), y1: 56, x2: stopX(reached), y2: 56, class: "track-done" });
+  // Spread icons a little where stops are close together on the scale.
+  let lastX = -Infinity;
+  STOPS.forEach((s, i) => {
+    const x = Math.max(stopX(i), lastX + 44);
+    lastX = x;
+    s._x = x;
+    mk("text", { x, y: 78, class: "stop-icon" + (i > reached ? " future" : "") }, s.icon);
+    mk("text", { x, y: 38, class: "stop-pow" }, `10${superscript(stopValue(s).exp)}`);
+  });
+  const rocket = mk("text", { x: 0, y: 14, class: "rocket" }, "🚀");
+  rocket.style.transform = `translateX(${STOPS[reached]._x}px)`;
+  if (drawTrack.lastX !== undefined && reached > 0) {
+    rocket.style.transform = `translateX(${STOPS[reached - 1]._x}px)`;
+    requestAnimationFrame(() => requestAnimationFrame(() => { rocket.style.transform = `translateX(${STOPS[reached]._x}px)`; }));
+  }
+  drawTrack.lastX = STOPS[reached]._x;
+  // On narrow screens the track scrolls: keep the rocket in view.
+  const wrap = svg.parentElement;
+  const scale = svg.getBoundingClientRect().width / 1000;
+  wrap.scrollTo({ left: Math.max(0, STOPS[reached]._x * scale - wrap.clientWidth / 2), behavior: "smooth" });
+}
+
+function superscript(n) {
+  const map = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+  return String(n).split("").map((c) => map[c]).join("");
+}
+
+/* ---------- One mission ---------- */
+
+function startMission() {
+  const ms = missions[mIdx];
+  const s = STOPS[ms.stop];
+  tries = 0;
+  orderPicked = [];
+  $("missionNum").textContent = mIdx + 1;
+  $("fuelVal").textContent = fuel;
+  $("fuelBar").style.width = `${(fuel / (3 * missions.length)) * 100}%`;
+  $("icon").textContent = s.icon;
+  $("kind").textContent = `Next stop: ${s.name} · ${KINDS[ms.kind]}`;
+  $("msg").textContent = "";
+  $("feedback").hidden = true;
+  $("nextBtn").hidden = true;
+  $("checkBtn").hidden = false;
+  $("checkBtn").disabled = false;
+  $("resetOrder").hidden = ms.kind !== "order";
+  const area = $("answerArea");
+
+  if (ms.kind === "to") {
+    $("fact").innerHTML = `${s.fact} <span class="value">${ordinary(s.m, s.e)}</span> ${s.unit}.`;
+    $("task").textContent = "Write this number in standard form.";
+    area.innerHTML = sfInputs();
+  } else if (ms.kind === "from") {
+    $("fact").innerHTML = `${s.fact} <span class="value">${sfHtml(s.m, s.e)}</span> ${s.unit}.`;
+    $("task").textContent = "Write this as an ordinary number.";
+    area.innerHTML = `<input type="text" id="ord" class="ord-input" placeholder="e.g. 0.0004 or 52000" spellcheck="false" inputmode="decimal">`;
+  } else if (ms.kind === "fix") {
+    $("fact").innerHTML = `The rocket computer says: ${s.fact} <span class="value">${ms.wrongA} × 10<sup>${minus(ms.wrongN)}</sup></span> ${s.unit}.`;
+    $("task").textContent = "That's the right size, but it isn't in standard form! Write it correctly.";
+    area.innerHTML = sfInputs();
+  } else {
+    $("fact").textContent = "Your navigator has mixed up the star charts.";
+    $("task").textContent = "Tap the objects in order from smallest to largest.";
+    area.innerHTML = `<div class="cards">${ms.cards.map((j) => {
+      const c = STOPS[j];
+      return `<button type="button" class="card" data-j="${j}"><span class="emoji">${c.icon}</span><span class="sf">${sfHtml(c.m, c.e)} m</span><br><span class="name">${c.name}</span></button>`;
+    }).join("")}</div>`;
+    area.querySelectorAll(".card").forEach((b) => b.addEventListener("click", () => pickCard(b)));
+    $("checkBtn").hidden = true;
+  }
+  const first = area.querySelector("input");
+  if (first) first.focus();
+}
+
+function sfInputs() {
+  return `<div class="sf-input" aria-label="a times ten to the power n">
+    <input type="text" class="a" id="sfA" placeholder="a" spellcheck="false" inputmode="decimal" aria-label="front number">
+    <span class="ten">× 10</span>
+    <input type="text" class="n" id="sfN" placeholder="n" spellcheck="false" aria-label="power of ten">
+  </div>`;
+}
+
+function pickCard(b) {
+  if (b.classList.contains("chosen") || !$("nextBtn").hidden) return;
+  orderPicked.push(+b.dataset.j);
+  b.classList.add("chosen");
+  const tag = document.createElement("span");
+  tag.className = "order";
+  tag.textContent = orderPicked.length;
+  b.appendChild(tag);
+  if (orderPicked.length === missions[mIdx].cards.length) checkOrder();
+}
+
+$("resetOrder").addEventListener("click", resetOrder);
+function resetOrder() {
+  orderPicked = [];
+  $("answerArea").querySelectorAll(".card").forEach((b) => {
+    b.classList.remove("chosen");
+    const t = b.querySelector(".order");
+    if (t) t.remove();
+  });
+}
+
+const HINTS = {
+  to: (s) => `Put the decimal point after the first non-zero digit to get the front number. Then count how many places the point has to move to get back to the original number: that's the power. ${s.e < 0 ? "The number is less than 1, so the power is negative." : "The number is bigger than 1, so the power is positive (or 0)."}`,
+  from: (s) => s.e >= 0
+    ? `10${superscript(s.e)} means move the decimal point ${s.e} place${s.e === 1 ? "" : "s"} to the right. Fill any gaps with zeros.`
+    : `10${superscript(s.e)} means move the decimal point ${-s.e} place${s.e === -1 ? "" : "s"} to the left. Fill any gaps with zeros.`,
+  fix: () => "The front number must be at least 1 and less than 10. If you make the front number 10 times smaller, make the power 1 bigger (and the other way round).",
+  order: () => "Compare the powers of 10 first: the bigger the power, the bigger the number. Remember −7 is smaller than −6. If two powers are the same, compare the front numbers.",
+};
+
+function readSF() {
+  const aRaw = $("sfA").value.trim();
+  const nRaw = $("sfN").value.trim().replace(/[−–—]/g, "-");
+  const a = normalise(aRaw);
+  if (!a || !/^-?\d+$/.test(nRaw)) return { error: "Fill in both boxes: the front number and the power (e.g. 3.5 and −4)." };
+  return { a, n: parseInt(nRaw, 10), aNum: parseFloat(aRaw.replace(/\s/g, "")) };
+}
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (!$("nextBtn").hidden) return;
+  const ms = missions[mIdx];
+  const s = STOPS[ms.stop];
+  const target = stopValue(s);
+  $("msg").textContent = "";
+  let correct = false, why = "";
+
+  if (ms.kind === "to" || ms.kind === "fix") {
+    const r = readSF();
+    if (r.error) { $("msg").textContent = r.error; return; }
+    const value = { digits: r.a.digits, exp: r.a.exp + r.n };
+    const isStandard = r.aNum >= 1 && r.aNum < 10;
+    if (same(value, target) && isStandard) correct = true;
+    else if (same(value, target)) why = `That's the right value, but ${$("sfA").value.trim()} isn't between 1 and 10, so it's not standard form.`;
+    else if (r.a.digits === target.digits && r.n === -s.e && s.e !== 0) why = "The digits are right, but check the sign of the power. Big numbers have positive powers, and small numbers (less than 1) have negative powers.";
+    else if (r.a.digits === target.digits) why = "The digits are right, but the power isn't. Count the decimal places again.";
+    else why = "The front number's digits aren't right.";
+  } else if (ms.kind === "from") {
+    const v = normalise($("ord").value.trim());
+    if (!v) { $("msg").textContent = "Type an ordinary number using digits and a decimal point, e.g. 0.00052 or 4 500 000."; return; }
+    if (same(v, target)) correct = true;
+    else if (v.digits === target.digits) why = `The digits are right, but the decimal point is in the wrong place (you're out by a factor of 10${superscript(Math.abs(v.exp - target.exp))}).`;
+    else why = "Those digits don't match.";
+  }
+  grade(correct, why);
+});
+
+function checkOrder() {
+  const ms = missions[mIdx];
+  const sorted = [...ms.cards].sort((x, y) => stopValue(STOPS[x]).exp - stopValue(STOPS[y]).exp || parseFloat(STOPS[x].m) - parseFloat(STOPS[y].m));
+  const correct = sorted.every((j, k) => j === orderPicked[k]);
+  grade(correct, "That's not the right order.", sorted);
+}
+
+function answerHtml(ms, sorted) {
+  const s = STOPS[ms.stop];
+  if (ms.kind === "to" || ms.kind === "fix") return `<strong>${sfHtml(s.m, s.e)}</strong> ${s.unit}`;
+  if (ms.kind === "from") return `<strong>${ordinary(s.m, s.e)}</strong> ${s.unit}`;
+  return sorted.map((j) => `${STOPS[j].icon} ${sfHtml(STOPS[j].m, STOPS[j].e)}`).join(" &lt; ");
+}
+
+function workingHtml(ms) {
+  const s = STOPS[ms.stop];
+  if (ms.kind === "order") return "";
+  const ord = ordinary(s.m, s.e);
+  const moves = Math.abs(s.e);
+  const dir = s.e >= 0 ? "right" : "left";
+  if (ms.kind === "fix") {
+    const k = s.e - ms.wrongN;
+    return `<p class="muted" style="margin-top:6px">${ms.wrongA} → ${s.m} makes the front number 10${superscript(Math.abs(k))} times ${k > 0 ? "smaller" : "bigger"}, so the power goes ${k > 0 ? "up" : "down"} by ${Math.abs(k)}: ${minus(ms.wrongN)} ${k > 0 ? "+" : "−"} ${Math.abs(k)} = ${minus(s.e)}.</p>`;
+  }
+  return `<p class="muted" style="margin-top:6px">${s.e === 0 ? `${s.m} is already between 1 and 10, so the power is 0 (10⁰ = 1).` : `${sfHtml(s.m, s.e)}: move the decimal point ${moves} place${moves === 1 ? "" : "s"} to the ${dir} of ${s.m} to get ${ord}.`}</p>`;
+}
+
+function grade(correct, why, sorted) {
+  const ms = missions[mIdx];
+  const s = STOPS[ms.stop];
+  tries++;
+  const fb = $("feedback");
+  fb.hidden = false;
+  if (correct) {
+    const gained = tries === 1 ? 3 : 1;
+    fuel += gained;
+    results.push({ stop: ms.stop, kind: ms.kind, gained });
+    fb.className = "feedback good";
+    fb.innerHTML = `<p><strong>✅ Mission complete! +${"⛽".repeat(gained)}</strong></p><p>${answerHtml(ms, sorted)}</p>${workingHtml(ms)}`;
+    return finishMission();
+  }
+  if (tries === 1) {
+    fb.className = "feedback bad";
+    fb.innerHTML = `<p><strong>❌ Not quite.</strong> ${why}</p><p>💡 ${HINTS[ms.kind](s)}</p><p class="muted">Try again!</p>`;
+    if (ms.kind === "order") resetOrder();
+    $("form").classList.remove("shake"); void $("form").offsetWidth; $("form").classList.add("shake");
+    return;
+  }
+  results.push({ stop: ms.stop, kind: ms.kind, gained: 0 });
+  fb.className = "feedback info";
+  fb.innerHTML = `<p><strong>Mission failed, but the rescue crew towed you on.</strong> ${why}</p><p>The answer: ${answerHtml(ms, sorted)}</p>${workingHtml(ms)}`;
+  finishMission();
+}
+
+function finishMission() {
+  $("checkBtn").disabled = true;
+  $("resetOrder").hidden = true;
+  $("answerArea").querySelectorAll("input").forEach((i) => { i.disabled = true; });
+  $("fuelVal").textContent = fuel;
+  $("fuelBar").style.width = `${(fuel / (3 * missions.length)) * 100}%`;
+  $("nextBtn").textContent = mIdx + 1 < missions.length ? `Blast off to ${STOPS[missions[mIdx + 1].stop].name} →` : "Land at the galaxy's edge 🌌";
+  $("nextBtn").hidden = false;
+  drawTrack(missions[mIdx].stop);
+  $("nextBtn").focus();
+}
+
+$("nextBtn").addEventListener("click", () => {
+  mIdx++;
+  if (mIdx < missions.length) startMission();
+  else finish();
+});
+
+function finish() {
+  const max = 3 * missions.length;
+  const best = loadBest();
+  const isBest = best === null || fuel > best;
+  if (isBest) saveBest(fuel);
+  $("overStats").textContent = `⛽ ${fuel} / ${max} fuel`;
+  $("overText").textContent = (isBest ? "🏅 New best on this device! " : `Your best is ${best}. `) +
+    (fuel === max ? "A perfect flight: every mission right first time!" : "Fly again for new missions and try for a full tank.");
+  $("resultRows").innerHTML = "";
+  for (const r of results) {
+    const s = STOPS[r.stop];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${s.icon} ${s.name}</td><td>${sfHtml(s.m, s.e)} m</td><td>${KINDS[r.kind]}</td><td>${r.gained ? "⛽".repeat(r.gained) : "–"}</td>`;
+    $("resultRows").appendChild(tr);
+  }
+  showBest();
+  show("over");
+}
+</script>
+</body>
+</html>

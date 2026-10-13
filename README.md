@@ -12,6 +12,7 @@ A collection of free browser-based educational games. Each game is a self-contai
 | [Equation Escape Room](equation-escape/) | Solving linear equations | 1 |
 | [Prime Factor Defence](prime-defence/) | Prime factorisation and index notation | 1 |
 | [Fraction Wall Race](fraction-wall/) | Adding fractions and equivalent fractions | 1 |
+| [Standard Form Space Race](standard-form-race/) | Writing, reading and comparing numbers in standard form | 1 |
 
 ### Laser Battleships
 
@@ -45,6 +46,10 @@ Monsters carrying composite numbers walk along a road towards the castle. The pl
 ### Fraction Wall Race
 
 Build a 10-row fraction wall against the clock. Each row starts with one or two bricks, and the player adds bricks from a tray (including some spares) until the row is exactly 1. The running total shows the working with a common denominator, e.g. `1/3 + 1/4 = 4/12 + 3/12 = 7/12 (need 5/12 more)`. A brick that would overflow the row is rejected with the working and a 5-second penalty. Rows move from halves, thirds, quarters, sixths and eighths up to mixes of fifths, tenths and twelfths. In hard mode, tray bricks are all the same size, so the sums can't be judged by eye.
+
+### Standard Form Space Race
+
+A rocket flies along a powers-of-ten track through 13 real objects, from a flu virus (1.2 × 10⁻⁷ m) to the Milky Way (9.5 × 10²⁰ m). Each stop is a mission of one of four kinds: **write it** in standard form, **read it** as an ordinary number, **fix it** (e.g. 0.8849 × 10⁴ → 8.849 × 10³), or **order** four objects by size. Missions are mixed differently each game. Answers are checked exactly, and the feedback spots common mistakes: the wrong sign on the power, a front number that isn't between 1 and 10, or the decimal point in the wrong place. A hint follows the first wrong answer, and the answer with working after the second. Fuel: 3 for right first time, 1 for right second time.
 
 ## Sharing the games (GitHub Pages)
 
