@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parallel Parking</title>
+<meta name="description" content="Park your car on a line parallel or perpendicular to the road. Practise gradients of parallel and perpendicular lines.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .play { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .play { grid-template-columns: 1fr; } }
+  .road { stroke: #6b7894; stroke-width: 14; stroke-linecap: round; opacity: .9; }
+  .road-mark { stroke: #fff; stroke-width: 2; stroke-dasharray: 10 10; fill: none; }
+  .road-pt { fill: #fff; stroke: #0b1630; stroke-width: 2; }
+  .road-label { fill: #fff; font-size: 15px; font-weight: 700; paint-order: stroke; stroke: #0b1630; stroke-width: 4px; }
+  .target { fill: rgba(74, 222, 128, .2); stroke: var(--good); stroke-width: 2.5; stroke-dasharray: 5 4; }
+  .target-label { fill: var(--good); font-size: 15px; font-weight: 700; paint-order: stroke; stroke: #0b1630; stroke-width: 4px; }
+  .attempt { stroke: var(--bad); stroke-width: 2.5; stroke-dasharray: 8 6; opacity: .75; }
+  .answer { stroke: var(--good); stroke-width: 3.5; }
+  .car-body { fill: var(--gold); stroke: #7a4a00; stroke-width: 1.5; }
+  .car-glass { fill: #0b1630; opacity: .8; }
+  .task { font-size: 1.15rem; }
+  .task strong { color: var(--gold); white-space: nowrap; }
+  .level-dots { display: flex; gap: 6px; flex-wrap: wrap; }
+  .level-dots span { width: 26px; height: 26px; border-radius: 50%; background: var(--panel-2); display: grid; place-items: center; font-size: .75rem; font-weight: 700; color: var(--muted); }
+  .level-dots span.now { outline: 2px solid var(--p1); color: var(--text); }
+  .level-dots span.done { background: var(--gold); color: #2b1d00; }
+  .stars-big { font-size: 2rem; letter-spacing: 4px; }
+  .rules li { margin-bottom: 6px; }
+  table.results { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.results td, table.results th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🚗 Parallel Parking</h1>
+    <p class="muted">Park your car by typing the equation of the line it should drive along. Each level shows a road and a parking spot <strong>P</strong>. Your line must go through P and be either <strong>parallel</strong> or <strong>perpendicular</strong> to the road.</p>
+    <div class="panel">
+      <h2>Remember</h2>
+      <ul class="rules">
+        <li><strong>Parallel</strong> lines have the <strong>same gradient</strong>. A line parallel to y = 3x + 1 has gradient 3.</li>
+        <li><strong>Perpendicular</strong> lines meet at right angles. Their gradients <strong>multiply to make −1</strong>, so flip the fraction and change the sign. A line perpendicular to y = 2x + 1 has gradient −1/2.</li>
+        <li>To find <strong>c</strong>, put the coordinates of P into y = mx + c and solve.</li>
+        <li>In later levels the road's equation is hidden. Work out its gradient from two marked points: <strong>change in y ÷ change in x</strong>.</li>
+      </ul>
+      <p class="muted" style="margin:0">10 levels. Earn ⭐⭐⭐ by parking first time without hints.</p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Start driving</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="row" style="margin-bottom:12px">
+      <h1 style="margin:0" id="levelTitle">Level 1</h1>
+      <span class="spacer"></span>
+      <div class="level-dots" id="levelDots" aria-hidden="true"></div>
+    </div>
+    <div class="play">
+      <div class="panel"><svg id="board" class="board" role="img" aria-label="Grid showing the road and parking spot"></svg></div>
+      <div>
+        <div class="panel">
+          <p class="task" id="task"></p>
+          <p class="muted" id="roadInfo" style="margin:0"></p>
+        </div>
+        <form id="form" class="panel" autocomplete="off">
+          <label for="eq">Your car's line</label>
+          <div class="row" style="flex-wrap:nowrap">
+            <input type="text" id="eq" class="mono" placeholder="y = mx + c" spellcheck="false" autocapitalize="off">
+            <button type="submit" class="primary" id="goBtn">Drive!</button>
+          </div>
+          <div id="msg" class="muted" style="margin-top:8px"></div>
+          <div id="feedback" hidden></div>
+          <div class="row" style="margin-top:12px">
+            <button type="button" id="hintBtn">💡 Hint</button>
+            <span class="spacer"></span>
+            <button type="button" class="primary" id="nextBtn" hidden>Next level →</button>
+          </div>
+          <div id="hints"></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🏁</div>
+      <h1>All parked!</h1>
+      <p class="stars-big" id="finalStars"></p>
+      <p id="finalText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">Play again (new levels)</button>
+    </div>
+    <div class="panel">
+      <h2>Your levels</h2>
+      <table class="results"><thead><tr><th>Level</th><th>Task</th><th>Answer</th><th>Stars</th></tr></thead><tbody id="resultRows"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script src="../shared/lines.js"></script>
+<script>
+"use strict";
+const { EPS, fraction, fmt, fmtP, lin, formatEq, parseLine, createGrid, randInt, pick } = Lines;
+const N = 10;
+const LEVELS = 10;
+const EASY = [1, 2, 3, -1, -2, -3, 1 / 2, -1 / 2];
+const HARD = [2 / 3, -2 / 3, 3 / 2, -3 / 2, 1 / 3, -1 / 3, 1 / 4, -1 / 4, 4, -4, 3 / 4, -3 / 4];
+
+let level, lv, tries, hintsUsed, attempts, results, solved;
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", startGame);
+
+function startGame() {
+  level = 0;
+  results = [];
+  show("game");
+  startLevel();
+}
+
+// Build level i: a road y = mx + c, a type, and a parking point P.
+function makeLevel(i) {
+  const type = i < 3 ? "parallel" : i < 6 ? "perpendicular" : pick(["parallel", "perpendicular"]);
+  const showEq = i < 6;
+  const pool = i < 6 ? EASY : EASY.concat(HARD);
+  for (;;) {
+    const m = pick(pool);
+    const c = randInt(-5, 5);
+    const M = type === "parallel" ? m : -1 / m;
+    const d = fraction(M).d;
+    const px = d * randInt(Math.ceil(-8 / d), Math.floor(8 / d));
+    const py = randInt(-8, 8);
+    const cT = py - M * px;
+    if (Math.abs(cT) > 10) continue;
+    if (Math.abs(py - (m * px + c)) < 1) continue;   // not on or touching the road
+    if (Math.abs(px) < 1 && Math.abs(py) < 1) continue;
+    // Two whole-number points on the road, for reading the gradient.
+    const q = fraction(m).d;
+    const xs = [];
+    for (let x = -N; x <= N; x++) {
+      const y = m * x + c;
+      if (x % q === 0 && Math.abs(y) <= N - 1 && Math.abs(x) <= N - 1) xs.push(x);
+    }
+    if (xs.length < 2) continue;
+    const mid = Math.floor(xs.length / 2);
+    const a = xs[Math.max(0, mid - 1)], b = xs[Math.min(xs.length - 1, mid + 1)];
+    return { type, showEq, m, c, M, P: { x: px, y: py }, cT, roadPts: [{ x: a, y: m * a + c }, { x: b, y: m * b + c }] };
+  }
+}
+
+function startLevel() {
+  lv = makeLevel(level);
+  tries = 0;
+  hintsUsed = 0;
+  attempts = [];
+  solved = false;
+  $("levelTitle").textContent = `Level ${level + 1} of ${LEVELS}`;
+  $("levelDots").innerHTML = Array.from({ length: LEVELS }, (_, i) =>
+    `<span class="${i < level ? "done" : i === level ? "now" : ""}">${i + 1}</span>`).join("");
+  const P = `P(${fmt(lv.P.x)}, ${fmt(lv.P.y)})`;
+  $("task").innerHTML = `Park <strong>${lv.type}</strong> to the road, through <strong>${P}</strong>.`;
+  $("roadInfo").textContent = lv.showEq
+    ? `The road is ${formatEq(lv.m, lv.c)}.`
+    : `The road's equation is hidden. Use the two white points on the road to find its gradient.`;
+  $("eq").value = "";
+  $("eq").disabled = false;
+  $("goBtn").disabled = false;
+  $("hintBtn").disabled = false;
+  $("msg").textContent = "Type an equation in the form y = mx + c.";
+  $("msg").className = "muted";
+  $("feedback").hidden = true;
+  $("hints").innerHTML = "";
+  $("nextBtn").hidden = true;
+  draw();
+  $("eq").focus();
+}
+
+function draw(car = null) {
+  const g = createGrid($("board"), N);
+  const seg = Lines.clipLine(lv.m, lv.c, N);
+  if (seg) {
+    const attrs = { x1: g.sx(seg[0]), y1: g.sy(seg[1]), x2: g.sx(seg[2]), y2: g.sy(seg[3]) };
+    g.el("line", { ...attrs, class: "road" });
+    g.el("line", { ...attrs, class: "road-mark" });
+  }
+  if (lv.showEq) {
+    const lx = Math.max(-N + 1, Math.min(N - 6, seg ? (seg[0] + seg[2]) / 2 - 6 : 0));
+    const ly = lv.m * (lx + 3) + lv.c;
+    if (Math.abs(ly) < N - 0.5) g.text(lx + 3, ly + 0.9, "road: " + formatEq(lv.m, lv.c), "road-label", { "text-anchor": "middle" });
+  } else {
+    for (const p of lv.roadPts) g.point(p.x, p.y, "road-pt", 6);
+  }
+  for (const a of attempts) g.line(a.m, a.c, "attempt");
+  if (solved) g.line(lv.M, lv.cT, "answer");
+  g.el("rect", { x: g.sx(lv.P.x) - 14, y: g.sy(lv.P.y) - 14, width: 28, height: 28, rx: 4, class: "target" });
+  g.text(lv.P.x + 0.6, lv.P.y + 0.6, "P", "target-label");
+  if (car) drawCar(g, car.x, car.y, lv.M);
+}
+
+function drawCar(g, x, y, M) {
+  const angle = -Math.atan(M) * 180 / Math.PI;
+  const grp = g.el("g", { transform: `translate(${g.sx(x)} ${g.sy(y)}) rotate(${angle})` });
+  g.el("rect", { x: -20, y: -10, width: 40, height: 20, rx: 6, class: "car-body" }, grp);
+  g.el("rect", { x: 4, y: -7, width: 9, height: 14, rx: 2, class: "car-glass" }, grp);
+  g.el("rect", { x: -14, y: -7, width: 8, height: 14, rx: 2, class: "car-glass" }, grp);
+}
+
+function animateCar() {
+  const seg = Lines.clipLine(lv.M, lv.cT, N);
+  const startX = seg ? seg[0] : lv.P.x - 5;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const t0 = performance.now(), dur = reduce ? 1 : 1400;
+  function frame(t) {
+    const k = Math.min(1, (t - t0) / dur);
+    const ease = 1 - Math.pow(1 - k, 3);
+    const x = startX + (lv.P.x - startX) * ease;
+    draw({ x, y: lv.M * x + lv.cT });
+    if (k < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+const gradWord = () => lv.type === "parallel" ? "the same gradient as the road" : "a gradient that multiplies with the road's gradient to make −1";
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (solved) return;
+  const p = parseLine($("eq").value);
+  const msg = $("msg");
+  if (p.error) { msg.className = "error"; msg.textContent = p.error; return; }
+  tries++;
+  const gradOK = Math.abs(p.m - lv.M) < EPS;
+  const throughP = Math.abs(lv.P.y - (p.m * lv.P.x + p.c)) < 1e-7;
+  const fb = $("feedback");
+  fb.hidden = false;
+  msg.textContent = "";
+
+  if (gradOK && throughP) {
+    solved = true;
+    const stars = tries === 1 && hintsUsed === 0 ? 3 : tries <= 2 && hintsUsed <= 1 ? 2 : 1;
+    results.push({ level: level + 1, task: `${lv.type}, road ${formatEq(lv.m, lv.c)}, through (${fmt(lv.P.x)}, ${fmt(lv.P.y)})`, answer: formatEq(lv.M, lv.cT), stars });
+    fb.className = "feedback good";
+    fb.innerHTML = `<p><strong>🅿️ Perfectly parked! ${"⭐".repeat(stars)}</strong></p>
+      <p>${formatEq(lv.M, lv.cT)} has gradient ${fmt(lv.M)}. ${lv.type === "parallel"
+        ? `That's the same as the road's gradient (${fmt(lv.m)}), so it's parallel.`
+        : `The road's gradient is ${fmt(lv.m)}, and ${fmtP(lv.m)} × ${fmtP(lv.M)} = −1, so it's perpendicular.`}
+      It goes through P because ${fmt(lv.P.y)} = ${fmtP(lv.M)} × ${fmtP(lv.P.x)} ${lv.cT < 0 ? "−" : "+"} ${fmt(Math.abs(lv.cT))}.</p>`;
+    $("eq").disabled = true;
+    $("goBtn").disabled = true;
+    $("hintBtn").disabled = true;
+    $("nextBtn").textContent = level + 1 < LEVELS ? "Next level →" : "Finish 🏁";
+    $("nextBtn").hidden = false;
+    animateCar();
+    $("nextBtn").focus();
+    return;
+  }
+
+  attempts.push({ m: p.m, c: p.c });
+  draw();
+  fb.className = "feedback bad";
+  let text;
+  if (gradOK) {
+    text = `Your gradient (${fmt(p.m, p.style)}) is right, but the line misses P. Put P's coordinates into y = ${fmt(lv.M)}x + c to find c.`;
+  } else if (throughP) {
+    text = `Your line goes through P, but its gradient is ${fmt(p.m, p.style)}. It needs ${gradWord()}.`;
+  } else {
+    text = `Your line has the wrong gradient (${fmt(p.m, p.style)}) and misses P. It needs ${gradWord()}, and it must go through P.`;
+  }
+  fb.innerHTML = `<p><strong>💥 Crash!</strong> ${text}</p>`;
+  $("form").classList.remove("shake");
+  void $("form").offsetWidth;
+  $("form").classList.add("shake");
+});
+
+$("hintBtn").addEventListener("click", () => {
+  const hints = [];
+  if (!lv.showEq) {
+    const [a, b] = lv.roadPts;
+    hints.push(`The road goes through (${fmt(a.x)}, ${fmt(a.y)}) and (${fmt(b.x)}, ${fmt(b.y)}). Gradient = change in y ÷ change in x = ${fmt(b.y - a.y)} ÷ ${fmt(b.x - a.x)} = ${fmt(lv.m)}.`);
+  }
+  hints.push(lv.type === "parallel"
+    ? `Parallel lines have the same gradient, so your line's gradient is ${fmt(lv.M)}.`
+    : `For perpendicular lines, flip the road's gradient (${fmt(lv.m)}) upside down and change its sign. Your gradient is ${fmt(lv.M)}, because ${fmtP(lv.m)} × ${fmtP(lv.M)} = −1.`);
+  hints.push(`Now find c using P(${fmt(lv.P.x)}, ${fmt(lv.P.y)}): ${fmt(lv.P.y)} = ${fmtP(lv.M)} × ${fmtP(lv.P.x)} + c, so ${fmt(lv.P.y)} = ${fmt(lv.M * lv.P.x)} + c, which means c = ${fmt(lv.cT)}.`);
+  if (hintsUsed >= hints.length) return;
+  const div = document.createElement("div");
+  div.className = "feedback info";
+  div.textContent = `💡 ${hints[hintsUsed]}`;
+  $("hints").appendChild(div);
+  hintsUsed++;
+  if (hintsUsed >= hints.length) $("hintBtn").disabled = true;
+});
+
+$("nextBtn").addEventListener("click", () => {
+  level++;
+  if (level < LEVELS) startLevel();
+  else finish();
+});
+
+function finish() {
+  const total = results.reduce((s, r) => s + r.stars, 0);
+  $("finalStars").textContent = `${total} / ${LEVELS * 3} ⭐`;
+  $("finalText").textContent = total === LEVELS * 3
+    ? "A perfect score: every car parked first time!"
+    : total >= LEVELS * 2 ? "Great driving! Play again to try for all 30 stars." : "Good effort! Play again for new levels and more stars.";
+  $("resultRows").innerHTML = "";
+  for (const r of results) {
+    const tr = document.createElement("tr");
+    for (const v of [r.level, r.task, r.answer, "⭐".repeat(r.stars)]) {
+      const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+    }
+    $("resultRows").appendChild(tr);
+  }
+  show("over");
+}
+</script>
+</body>
+</html>

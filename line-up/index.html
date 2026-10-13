@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Line Up</title>
+<meta name="description" content="A two-player game about straight lines and simultaneous equations: claim stars with your lines and work out where lines cross.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .play { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .play { grid-template-columns: 1fr; } }
+  .scores { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .score { border-radius: 12px; padding: 10px 12px; background: var(--panel-2); border: 2px solid transparent; }
+  .score.active.p0 { border-color: var(--p0); }
+  .score.active.p1 { border-color: var(--p1); }
+  .score .name { font-weight: 700; }
+  .score.p0 .name { color: var(--p0); }
+  .score.p1 .name { color: var(--p1); }
+  .score .pts { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+  .score .detail { font-size: .85rem; color: var(--muted); }
+  .badge { display: inline-block; padding: 2px 12px; border-radius: 999px; font-weight: 700; font-size: .9rem; }
+  .badge.p0 { background: var(--p0); color: #fff; }
+  .badge.p1 { background: var(--p1); color: #062033; }
+  .ln { stroke-width: 3; stroke-linecap: round; }
+  .ln.p0 { stroke: var(--p0); }
+  .ln.p1 { stroke: var(--p1); }
+  .ln.old { opacity: .5; }
+  .ln.focus { stroke-width: 4.5; filter: drop-shadow(0 0 4px rgba(255,255,255,.5)); }
+  .star { stroke-width: 2; stroke-linejoin: round; }
+  .star.free { fill: rgba(255, 183, 3, .2); stroke: var(--gold); }
+  .star.p0 { fill: var(--p0); stroke: #fff; }
+  .star.p1 { fill: var(--p1); stroke: #fff; }
+  .lock { fill: none; stroke: var(--gold); stroke-width: 2.5; }
+  .cross { stroke-width: 2.5; }
+  .cross.right { fill: var(--good); stroke: #052e16; }
+  .cross.wrong { fill: var(--bad); stroke: #3b0a0a; }
+  .xy { display: flex; gap: 8px; align-items: center; font-size: 1.3rem; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .xy input { width: 6.5em; text-align: center; }
+  ol.history { margin: 0; padding-left: 1.6em; font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: .95rem; }
+  ol.history li.p0::marker { color: var(--p0); }
+  ol.history li.p1::marker { color: var(--p1); }
+  .work { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: .95rem; margin: 6px 0 0; padding-left: 1.2em; }
+  .rules li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>✳️ Line Up</h1>
+    <p class="muted">A two-player game about straight lines and where they cross. Take turns drawing lines with equations like <strong>y = 2x + 1</strong> to claim stars, then work out where your line crosses your opponent's.</p>
+    <div class="panel">
+      <h2>How to play</h2>
+      <ol class="rules">
+        <li>The grid has <strong>8 stars</strong>. Players take turns drawing one line each, by typing its equation.</li>
+        <li>If your line goes through a free star, you <strong>claim it</strong> (1 point).</li>
+        <li>If your line goes through one of your opponent's stars, it crosses their line right on the star, so you <strong>steal it</strong>! A stolen star is locked and can't be stolen back.</li>
+        <li>After drawing your line, work out <strong>exactly where it crosses your opponent's latest line</strong>. Type the crossing point, or say the lines are parallel. A correct answer scores <strong>2 points</strong>.</li>
+        <li>The player with the most points after all the rounds wins.</li>
+      </ol>
+    </div>
+    <form id="setupForm" class="panel">
+      <h2>Set up the game</h2>
+      <div class="grid-2">
+        <div class="field"><label for="name0">Player 1 name</label><input type="text" id="name0" maxlength="20" placeholder="Player 1" autocomplete="off"></div>
+        <div class="field"><label for="name1">Player 2 name</label><input type="text" id="name1" maxlength="20" placeholder="Player 2" autocomplete="off"></div>
+        <div class="field">
+          <label for="rounds">Lines each</label>
+          <select id="rounds"><option value="4">4 (quick game)</option><option value="6" selected>6</option><option value="8">8 (long game)</option></select>
+        </div>
+      </div>
+      <button type="submit" class="primary">Start game</button>
+    </form>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="row" style="margin-bottom:12px">
+      <h1 style="margin:0"><span id="turnBadge" class="badge p0">Player 1</span> <span id="turnTitle">Your turn</span></h1>
+      <span class="spacer"></span>
+      <span class="muted" id="roundInfo"></span>
+    </div>
+    <div class="play">
+      <div class="panel"><svg id="board" class="board" role="img" aria-label="Coordinate grid with stars and lines"></svg></div>
+      <div>
+        <div class="panel">
+          <div class="scores">
+            <div class="score p0" id="score0"><div class="name"></div><div class="pts"></div><div class="detail"></div></div>
+            <div class="score p1" id="score1"><div class="name"></div><div class="pts"></div><div class="detail"></div></div>
+          </div>
+        </div>
+
+        <form id="lineForm" class="panel" autocomplete="off">
+          <label for="eq">Step 1: draw your line</label>
+          <div class="row" style="flex-wrap:nowrap">
+            <input type="text" id="eq" class="mono" placeholder="y = 2x + 1" spellcheck="false" autocapitalize="off">
+            <button type="submit" class="primary" id="drawBtn">Draw</button>
+          </div>
+          <div id="lineMsg" class="muted" style="margin-top:8px">Aim for the stars! Examples: <code>y = x + 2</code>, <code>y = −2x + 3</code>, <code>y = 1/2x − 1</code></div>
+        </form>
+
+        <form id="crossForm" class="panel" autocomplete="off" hidden>
+          <label>Step 2: where do the lines cross?</label>
+          <p id="crossQ" style="margin-bottom:10px"></p>
+          <div class="xy">( <input type="text" id="cx" placeholder="x" aria-label="x coordinate" inputmode="text"> , <input type="text" id="cy" placeholder="y" aria-label="y coordinate" inputmode="text"> )</div>
+          <div class="row" style="margin-top:12px">
+            <button type="submit" class="go" id="crossBtn">Check</button>
+            <button type="button" id="parallelBtn">They're parallel: they never cross</button>
+          </div>
+          <div id="crossMsg" class="error" style="margin-top:8px"></div>
+        </form>
+
+        <div id="feedback" class="panel" hidden>
+          <div id="feedbackBody"></div>
+          <button type="button" class="primary" id="nextBtn" style="margin-top:12px">Next turn →</button>
+        </div>
+
+        <div class="panel">
+          <h2>Lines drawn</h2>
+          <ol id="history" class="history"></ol>
+          <p id="historyEmpty" class="muted" style="margin:0">No lines yet.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🏆</div>
+      <h1 id="overTitle"></h1>
+      <p id="overText" class="muted"></p>
+      <div class="row" style="justify-content:center">
+        <button type="button" class="primary" id="againBtn">Play again</button>
+        <button type="button" id="setupBtn">New players</button>
+      </div>
+    </div>
+    <div class="panel"><svg id="finalBoard" class="board"></svg></div>
+  </section>
+</main>
+
+<script src="../shared/lines.js"></script>
+<script>
+"use strict";
+const { EPS, fmt, fmtP, lin, formatEq, parseNumber, parseLine, createGrid, randInt } = Lines;
+const N = 10;
+const STAR_COUNT = 8;
+
+let settings, players, lines, stars, crosses, current, turnNo, lastLine, question;
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+
+$("setupForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  settings = {
+    names: [$("name0").value.trim() || "Player 1", $("name1").value.trim() || "Player 2"],
+    rounds: parseInt($("rounds").value, 10),
+  };
+  newGame();
+});
+$("againBtn").addEventListener("click", newGame);
+$("setupBtn").addEventListener("click", () => show("start"));
+
+function newGame() {
+  players = settings.names.map((name) => ({ name, crossPts: 0 }));
+  lines = [];
+  crosses = [];
+  stars = makeStars();
+  current = 0;
+  turnNo = 0;
+  show("game");
+  startTurn();
+}
+
+// Random stars at whole-number points, spread out from each other.
+function makeStars() {
+  const out = [];
+  let guard = 0;
+  while (out.length < STAR_COUNT && guard++ < 5000) {
+    const s = { x: randInt(-8, 8), y: randInt(-8, 8), owner: null, locked: false };
+    if (out.some((t) => Math.hypot(t.x - s.x, t.y - s.y) < 3)) continue;
+    out.push(s);
+  }
+  return out;
+}
+
+const starsOf = (p) => stars.filter((s) => s.owner === p).length;
+const scoreOf = (p) => starsOf(p) + players[p].crossPts;
+const onLine = (pt, l) => Math.abs(pt.y - (l.m * pt.x + l.c)) < 1e-7;
+
+function startTurn() {
+  lastLine = null;
+  question = null;
+  $("eq").value = "";
+  $("eq").disabled = false;
+  $("drawBtn").disabled = false;
+  $("lineMsg").className = "muted";
+  $("lineMsg").innerHTML = "Aim for the stars! Examples: <code>y = x + 2</code>, <code>y = −2x + 3</code>, <code>y = 1/2x − 1</code>";
+  if (latestLineOf(1 - current)) {
+    $("lineMsg").innerHTML += `<br>Afterwards you'll find where your line crosses ${players[1 - current].name}'s latest line (highlighted).`;
+  }
+  $("lineForm").hidden = false;
+  $("crossForm").hidden = true;
+  $("feedback").hidden = true;
+  render();
+  $("eq").focus();
+}
+
+function render(animateLast = false) {
+  const badge = $("turnBadge");
+  badge.textContent = players[current].name;
+  badge.className = "badge p" + current;
+  $("roundInfo").textContent = `Round ${Math.floor(turnNo / 2) + 1} of ${settings.rounds}`;
+  for (let p = 0; p < 2; p++) {
+    const box = $("score" + p);
+    box.classList.toggle("active", p === current);
+    box.querySelector(".name").textContent = players[p].name;
+    box.querySelector(".pts").textContent = scoreOf(p);
+    box.querySelector(".detail").textContent = `${starsOf(p)} ★ + ${players[p].crossPts} from crossings`;
+  }
+  drawBoard($("board"), animateLast);
+  $("history").innerHTML = "";
+  for (const l of lines) {
+    const li = document.createElement("li");
+    li.className = "p" + l.owner;
+    li.textContent = `${l.text} (${players[l.owner].name})`;
+    $("history").appendChild(li);
+  }
+  $("historyEmpty").hidden = lines.length > 0;
+}
+
+function starPath(cx, cy, R, r) {
+  let d = "";
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 5;
+    const rad = i % 2 ? r : R;
+    d += (i ? "L" : "M") + (cx + rad * Math.cos(a)).toFixed(1) + " " + (cy + rad * Math.sin(a)).toFixed(1);
+  }
+  return d + "Z";
+}
+
+function drawBoard(svg, animateLast) {
+  const g = createGrid(svg, N);
+  const oppLatest = latestLineOf(1 - current);
+  lines.forEach((l, i) => {
+    const isLast = i === lines.length - 1;
+    let cls = `ln p${l.owner}`;
+    if (question && (l === question.mine || l === question.theirs)) cls += " focus";
+    else if (!question && l === oppLatest && !lastLine) cls += " focus";
+    else if (!(isLast && lastLine)) cls += " old";
+    if (isLast && animateLast) cls += " draw";
+    g.line(l.m, l.c, cls);
+  });
+  for (const s of stars) {
+    g.el("path", { d: starPath(g.sx(s.x), g.sy(s.y), 11, 5), class: "star " + (s.owner === null ? "free" : "p" + s.owner) });
+    if (s.locked) g.el("circle", { cx: g.sx(s.x), cy: g.sy(s.y), r: 15, class: "lock" });
+  }
+  for (const c of crosses) {
+    g.el("rect", {
+      x: g.sx(c.x) - 6, y: g.sy(c.y) - 6, width: 12, height: 12,
+      transform: `rotate(45 ${g.sx(c.x)} ${g.sy(c.y)})`, class: "cross " + (c.right ? "right" : "wrong"),
+    });
+  }
+}
+
+function latestLineOf(p) {
+  for (let i = lines.length - 1; i >= 0; i--) if (lines[i].owner === p) return lines[i];
+  return null;
+}
+
+$("lineForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (lastLine) return;
+  const parsed = parseLine($("eq").value);
+  const msg = $("lineMsg");
+  if (parsed.error) { msg.className = "error"; msg.textContent = parsed.error; return; }
+  const { m, c, style } = parsed;
+  if (lines.some((l) => Math.abs(l.m - m) < EPS && Math.abs(l.c - c) < EPS)) {
+    msg.className = "error";
+    msg.textContent = `${formatEq(m, c, style)} has already been drawn. Try a different line.`;
+    return;
+  }
+
+  const line = { m, c, style, owner: current, text: formatEq(m, c, style) };
+  lines.push(line);
+  lastLine = line;
+
+  // Claim free stars and steal unlocked enemy stars on the new line.
+  let claimed = 0, stolen = 0;
+  for (const s of stars) {
+    if (!onLine(s, line)) continue;
+    if (s.owner === null) { s.owner = current; claimed++; }
+    else if (s.owner !== current && !s.locked) { s.owner = current; s.locked = true; stolen++; }
+  }
+
+  $("eq").disabled = true;
+  $("drawBtn").disabled = true;
+  const parts = [];
+  if (claimed) parts.push(`⭐ You claimed ${claimed} star${claimed > 1 ? "s" : ""}!`);
+  if (stolen) parts.push(`🏴‍☠️ You crossed your opponent's line on a star and stole ${stolen}!`);
+  if (!parts.length) parts.push("No stars on that line this time.");
+  msg.className = "muted";
+  msg.textContent = `${line.text}: ${parts.join(" ")}`;
+
+  const theirs = latestLineOf(1 - current);
+  if (theirs) {
+    question = { mine: line, theirs };
+    $("crossQ").innerHTML = "";
+    $("crossQ").append("Where does your line ", strong(line.text, current), " cross ", strong(theirs.text, 1 - current), "?");
+    $("cx").value = ""; $("cy").value = ""; $("crossMsg").textContent = "";
+    $("crossForm").hidden = false;
+    render(true);
+    $("cx").focus();
+  } else {
+    render(true);
+    finishTurn(`<p>${players[1 - current].name} hasn't drawn a line yet, so there's no crossing point to find this turn.</p>`);
+  }
+});
+
+function strong(text, p) {
+  const s = document.createElement("strong");
+  s.textContent = text;
+  s.style.color = p ? "var(--p1)" : "var(--p0)";
+  return s;
+}
+
+function answerCrossing(saidParallel) {
+  const { mine: a, theirs: b } = question;
+  const parallel = Math.abs(a.m - b.m) < EPS;
+  let right, given = null;
+  if (!saidParallel) {
+    const x = parseNumber($("cx").value), y = parseNumber($("cy").value);
+    if (isNaN(x) || isNaN(y)) { $("crossMsg").textContent = "Type a number in both boxes, e.g. 2 and −3 (fractions like 7/2 are fine)."; return; }
+    given = { x, y };
+  }
+  const style = a.style === "decimal" && b.style === "decimal" ? "decimal" : "fraction";
+  let html;
+  if (parallel) {
+    right = saidParallel;
+    html = `<p>Both lines have gradient <strong>${fmt(a.m, style)}</strong>, so they are <strong>parallel</strong> and never cross.</p>`;
+  } else {
+    const x = (b.c - a.c) / (a.m - b.m);
+    const y = a.m * x + a.c;
+    right = !saidParallel && Math.abs(given.x - x) < 0.011 && Math.abs(given.y - y) < 0.011;
+    crosses.push({ x, y, right });
+    html = `<p>The gradients are different (${fmt(a.m, style)} and ${fmt(b.m, style)}), so the lines do cross. Here's how to find where:</p>
+      <ol class="work">
+        <li>Set the two right-hand sides equal: ${lin(a.m, a.c, style)} = ${lin(b.m, b.c, style)}</li>
+        <li>Collect x terms on one side and numbers on the other: ${lin(a.m - b.m, 0, style)} = ${fmt(b.c - a.c, style)}</li>
+        ${Math.abs(a.m - b.m - 1) < EPS ? "" : `<li>Divide by ${fmt(a.m - b.m, style)}: x = ${fmt(x, style)}</li>`}
+        <li>${substitution(a, b, x, y, style)}</li>
+      </ol>
+      <p style="margin-top:8px">Crossing point: <strong>(${fmt(x, style)}, ${fmt(y, style)})</strong>${Math.abs(x) > N || Math.abs(y) > N ? " (off the edge of the grid!)" : ""}</p>`;
+  }
+  if (right) players[current].crossPts += 2;
+  const head = right
+    ? `<p><strong>✅ Correct! +2 points.</strong></p>`
+    : `<p><strong>❌ Not quite.</strong>${given ? ` You said (${fmt(given.x, style)}, ${fmt(given.y, style)}).` : " You said they were parallel."}</p>`;
+  $("crossForm").hidden = true;
+  finishTurn(head + html, right ? "good" : "bad");
+}
+// The "find y" step: use a flat line directly, otherwise substitute x.
+function substitution(a, b, x, y, style) {
+  const flat = Math.abs(a.m) < EPS ? a : Math.abs(b.m) < EPS ? b : null;
+  if (flat) return `${flat.text} is a flat line, so y = ${fmt(y, style)} everywhere on it.`;
+  const mx = Math.abs(a.m - 1) < EPS ? fmtP(x, style) : `${fmtP(a.m, style)} × ${fmtP(x, style)}`;
+  const c = Math.abs(a.c) < EPS ? "" : (a.c > 0 ? " + " : " − ") + fmt(Math.abs(a.c), style);
+  return `Substitute x into ${a.text}: y = ${mx}${c} = ${fmt(y, style)}`;
+}
+
+$("crossForm").addEventListener("submit", (e) => { e.preventDefault(); answerCrossing(false); });
+$("parallelBtn").addEventListener("click", () => answerCrossing(true));
+
+function finishTurn(html, kind = "info") {
+  question = null;
+  $("feedbackBody").className = "feedback " + kind;
+  $("feedbackBody").style.marginTop = "0";
+  $("feedbackBody").innerHTML = html;
+  const last = turnNo + 1 >= settings.rounds * 2;
+  $("nextBtn").textContent = last ? "See the final scores 🏆" : `Next turn: ${players[1 - current].name} →`;
+  $("feedback").hidden = false;
+  render(false);
+  $("nextBtn").focus();
+}
+
+$("nextBtn").addEventListener("click", () => {
+  turnNo++;
+  if (turnNo >= settings.rounds * 2) return gameOver();
+  current = 1 - current;
+  startTurn();
+});
+
+function gameOver() {
+  const s0 = scoreOf(0), s1 = scoreOf(1);
+  $("overTitle").textContent = s0 === s1 ? "It's a draw!" : `${players[s0 > s1 ? 0 : 1].name} wins!`;
+  $("overText").textContent = `${players[0].name}: ${s0} points (${starsOf(0)} ★ + ${players[0].crossPts} from crossings). ` +
+    `${players[1].name}: ${s1} points (${starsOf(1)} ★ + ${players[1].crossPts} from crossings).`;
+  question = null; lastLine = null;
+  drawBoard($("finalBoard"), false);
+  show("over");
+}
+</script>
+</body>
+</html>

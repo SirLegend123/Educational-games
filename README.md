@@ -7,6 +7,9 @@ A collection of free browser-based educational games. Each game is a self-contai
 | Game | Topic | Players |
 | --- | --- | --- |
 | [Laser Battleships](laser-battleships/) | Straight-line graphs: gradient and y-intercept (`y = mx + c`) | 2 (pass and play) |
+| [Line Up](line-up/) | Simultaneous equations: where two lines cross | 2 (pass and play) |
+| [Parallel Parking](parallel-parking/) | Gradients of parallel and perpendicular lines | 1 |
+| [Equation Escape Room](equation-escape/) | Solving linear equations | 1 |
 
 ### Laser Battleships
 
@@ -19,6 +22,18 @@ Teaching features:
 - After each shot, it explains the line: "for every 1 step right the line goes up 2; it crosses the y-axis at (0, 1)".
 - Optional aiming line for beginners; small (−6 to 6) or large (−10 to 10) grid.
 
+### Line Up
+
+The grid has 8 stars. Players take turns drawing a line by typing its equation. A line through a free star claims it, and a line through an opponent's star (crossing their line right on it) steals and locks it. After each line, the player works out exactly where it crosses their opponent's latest line, or says the lines are parallel, for 2 points. Wrong answers show the full working: set the equations equal, collect terms, divide, substitute.
+
+### Parallel Parking
+
+Ten levels, each with a road and a parking spot P. The player types the equation of a line through P that is parallel or perpendicular to the road. Levels 1–3 are parallel, 4–6 perpendicular, and 7–10 mix both with the road's equation hidden, so the gradient must be read from two marked points. Feedback says whether the gradient or the intercept is wrong, and up to three hints walk through the method. Levels are randomly generated each game.
+
+### Equation Escape Room
+
+Ten locked doors, each opened by solving an equation: one-step, two-step, brackets, unknowns on both sides, brackets with unknowns on both sides, a fraction, and a final "brackets on both sides" boss. Answers from room 6 on can be negative. Solving within two tries earns a key; a wrong answer gives the first step as a hint, and a second wrong answer shows the full working. The game is timed and remembers your best result on that device. Equations are randomly generated each game.
+
 ## Sharing the games (GitHub Pages)
 
 1. In this repository on GitHub, open **Settings → Pages**.
@@ -28,3 +43,5 @@ Teaching features:
 ## Adding a new game
 
 Create a new folder (e.g. `my-new-game/`) containing an `index.html`, then add a card for it to the home page (`index.html`) and a row to the table above.
+
+Shared code lives in `shared/`: `theme.css` (colours, panels, buttons, grid styles) and `lines.js` (reading equations like `y = 2x + 1`, formatting fractions, and drawing coordinate grids). Line Up, Parallel Parking and Equation Escape Room use these; Laser Battleships is self-contained.

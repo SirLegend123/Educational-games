@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Equation Escape Room</title>
+<meta name="description" content="Solve linear equations to unlock ten doors and escape. Practise one-step, two-step, brackets and unknowns on both sides.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .play { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 700px) { .play { grid-template-columns: 1fr; } .door-panel { display: flex; justify-content: center; } }
+  .door-panel { text-align: center; }
+  .doorway {
+    position: relative; width: 150px; height: 230px; margin: 0 auto;
+    background: radial-gradient(circle at 50% 40%, #fff7cc, #ffb703 45%, #3b2500 100%);
+    border: 10px solid #4a2f16; border-bottom: 0; border-radius: 6px 6px 0 0;
+    perspective: 700px;
+  }
+  .door {
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, #7a4a22, #8f5a2c 50%, #7a4a22);
+    transform-origin: left center; transition: transform 1s cubic-bezier(.3, .7, .3, 1);
+    display: grid; place-items: center;
+    box-shadow: inset 0 0 0 6px rgba(0,0,0,.15);
+  }
+  .door::before, .door::after {
+    content: ""; position: absolute; left: 16px; right: 16px; border: 3px solid rgba(0,0,0,.2); border-radius: 4px;
+  }
+  .door::before { top: 16px; height: 80px; }
+  .door::after { bottom: 16px; height: 90px; }
+  .door .knob { position: absolute; right: 14px; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 2px #7a4a00; }
+  .door .lock { font-size: 2.2rem; position: relative; z-index: 1; }
+  .door .num { position: absolute; top: 34px; font-weight: 800; font-size: 1.4rem; color: #f3d7a8; z-index: 1; }
+  .door.open { transform: rotateY(-82deg); }
+  @media (prefers-reduced-motion: reduce) { .door { transition: none; } }
+  .floor { width: 190px; height: 10px; margin: 0 auto; background: #4a2f16; border-radius: 3px; }
+  .keys { margin-top: 12px; font-size: 1.1rem; letter-spacing: 2px; min-height: 1.6em; }
+  .timer { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .equation { font-size: clamp(1.6rem, 5vw, 2.4rem); font-weight: 700; text-align: center; padding: 18px 8px; background: #0a1430; border-radius: 12px; margin-bottom: 14px; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; font-size: .85em; }
+  .frac > span:first-child { border-bottom: 3px solid currentColor; padding: 0 6px; }
+  .answer { display: flex; gap: 8px; align-items: center; font-size: 1.4rem; font-family: ui-monospace, "SF Mono", Consolas, monospace; white-space: nowrap; }
+  .answer input { flex: 1; min-width: 0; max-width: 9em; font-size: 1.3rem; text-align: center; }
+  .answer button { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  ol.steps { margin: 6px 0 0; padding-left: 1.4em; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  ol.steps li { margin-bottom: 4px; }
+  .progress { display: flex; gap: 6px; flex-wrap: wrap; }
+  .progress span { width: 26px; height: 26px; border-radius: 6px; background: var(--panel-2); display: grid; place-items: center; font-size: .75rem; font-weight: 700; color: var(--muted); }
+  .progress span.now { outline: 2px solid var(--p1); color: var(--text); }
+  .progress span.key { background: var(--gold); color: #2b1d00; }
+  .progress span.nokey { background: #3a5291; color: var(--text); }
+  table.results { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.results td, table.results th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  table.results td:nth-child(2) { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .rules li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🚪 Equation Escape Room</h1>
+    <p class="muted">You're locked in! Each door has an equation on it, and the answer is the code that unlocks it. Solve all ten to escape. The equations get harder as you go.</p>
+    <div class="panel">
+      <h2>How it works</h2>
+      <ul class="rules">
+        <li>Type the value of <strong>x</strong> and press <strong>Unlock</strong>. Fractions like <code>7/2</code> and negatives like <code>−3</code> are fine.</li>
+        <li>Get it right within <strong>two tries</strong> to collect a 🔑 key. After one wrong try you'll get a hint. After two, you'll see the full working.</li>
+        <li>The rooms go: one-step equations → two-step → brackets → unknowns on both sides → fractions → the final boss.</li>
+        <li>The clock is ticking ⏱️. Can you escape with all 10 keys?</li>
+      </ul>
+      <p id="bestInfo" class="muted" style="margin:0"></p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Enter the escape room</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="row" style="margin-bottom:12px">
+      <h1 style="margin:0" id="roomTitle">Room 1</h1>
+      <span class="spacer"></span>
+      <span>⏱️ <span class="timer" id="timer">0:00</span></span>
+    </div>
+    <div class="progress" id="progress" style="margin-bottom:12px" aria-hidden="true"></div>
+    <div class="play">
+      <div class="panel door-panel">
+        <div>
+          <div class="doorway"><div class="door" id="door"><span class="num" id="doorNum">1</span><span class="lock" id="lock">🔒</span><span class="knob"></span></div></div>
+          <div class="floor"></div>
+          <div class="keys" id="keys" aria-label="Keys collected"></div>
+        </div>
+      </div>
+      <form id="form" class="panel" autocomplete="off">
+        <p class="muted" id="roomType" style="margin-bottom:8px"></p>
+        <div class="equation" id="equation" aria-live="polite"></div>
+        <label for="ans">Unlock code</label>
+        <div class="answer">x = <input type="text" id="ans" spellcheck="false" autocapitalize="off" inputmode="text"> <button type="submit" class="go" id="unlockBtn">Unlock</button></div>
+        <div id="msg" class="error" style="margin-top:8px"></div>
+        <div id="feedback" hidden></div>
+        <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next room →</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🎉</div>
+      <h1>You escaped!</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">Play again (new equations)</button>
+    </div>
+    <div class="panel">
+      <h2>Your rooms</h2>
+      <table class="results"><thead><tr><th>Room</th><th>Equation</th><th>x</th><th>Key</th></tr></thead><tbody id="resultRows"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script src="../shared/lines.js"></script>
+<script>
+"use strict";
+const { fmt, lin, parseNumber, randInt, pick } = Lines;
+const ROOMS = 10;
+const ROOM_KINDS = [1, 1, 2, 2, 3, 4, 4, 5, 6, 7];
+const KIND_NAMES = {
+  1: "One-step equation", 2: "Two-step equation", 3: "Equation with brackets",
+  4: "Unknowns on both sides", 5: "Brackets and unknowns on both sides",
+  6: "Equation with a fraction", 7: "Final boss: brackets on both sides",
+};
+const BEST_KEY = "equationEscapeBest";
+
+let room, puzzle, tries, results, startTime, timerId, done;
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const nonZero = (lo, hi) => { let v; do v = randInt(lo, hi); while (v === 0); return v; };
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+function loadBest() {
+  try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; }
+}
+function saveBest(b) {
+  try { localStorage.setItem(BEST_KEY, JSON.stringify(b)); } catch { /* storage unavailable */ }
+}
+function showBest() {
+  const b = loadBest();
+  $("bestInfo").textContent = b ? `Your best on this device: ${b.keys}/10 keys in ${clock(b.time)}.` : "";
+}
+showBest();
+
+// Solve ax + b = cx + d step by step (a > c). Pushes explanations to steps.
+function linearSteps(a, b, c, d, steps) {
+  if (c !== 0) {
+    steps.push(`${c > 0 ? "Subtract" : "Add"} ${lin(Math.abs(c), 0)} ${c > 0 ? "from" : "to"} both sides: ${lin(a - c, b)} = ${fmt(d)}`);
+    a -= c;
+  }
+  if (b !== 0) {
+    steps.push(`${b > 0 ? "Subtract" : "Add"} ${fmt(Math.abs(b))} ${b > 0 ? "from" : "to"} both sides: ${lin(a, 0)} = ${fmt(d - b)}`);
+    d -= b;
+  }
+  if (a !== 1) steps.push(`Divide both sides by ${fmt(a)}: x = ${fmt(d / a)}`);
+}
+
+const bracket = (a, b) => `${a}(${lin(1, b)})`;
+
+// Make a puzzle for a room: { text (plain), html, x, steps }.
+function makePuzzle(r) {
+  const kind = ROOM_KINDS[r];
+  const x = r < 5 ? randInt(1, 12) : nonZero(-9, 12);
+  const steps = [];
+  let text;
+  if (kind === 1) {
+    const v = pick(["plus", "minus", "times"]);
+    if (v === "times") {
+      const a = randInt(2, 9);
+      text = `${lin(a, 0)} = ${fmt(a * x)}`;
+      steps.push(`Divide both sides by ${a}: x = ${fmt(x)}`);
+    } else {
+      const a = v === "plus" ? randInt(2, 15) : -randInt(2, 15);
+      text = `${lin(1, a)} = ${fmt(x + a)}`;
+      linearSteps(1, a, 0, x + a, steps);
+    }
+  } else if (kind === 2) {
+    const a = randInt(2, 9), b = nonZero(-15, 15);
+    text = `${lin(a, b)} = ${fmt(a * x + b)}`;
+    linearSteps(a, b, 0, a * x + b, steps);
+  } else if (kind === 3) {
+    const a = randInt(2, 6), b = nonZero(-8, 8);
+    const rhs = a * (x + b);
+    text = `${bracket(a, b)} = ${fmt(rhs)}`;
+    steps.push(`Expand the brackets: ${lin(a, a * b)} = ${fmt(rhs)}`);
+    linearSteps(a, a * b, 0, rhs, steps);
+  } else if (kind === 4) {
+    const a = randInt(3, 9), c = randInt(1, a - 1), b = nonZero(-12, 12);
+    const d = a * x + b - c * x;
+    text = `${lin(a, b)} = ${lin(c, d)}`;
+    linearSteps(a, b, c, d, steps);
+  } else if (kind === 5) {
+    const a = randInt(2, 6), b = nonZero(-6, 6), c = randInt(1, a - 1);
+    const d = a * (x + b) - c * x;
+    text = `${bracket(a, b)} = ${lin(c, d)}`;
+    steps.push(`Expand the brackets: ${lin(a, a * b)} = ${lin(c, d)}`);
+    linearSteps(a, a * b, c, d, steps);
+  } else if (kind === 6) {
+    let a, b, c;
+    do { b = randInt(2, 5); c = randInt(-4, 8); a = b * c - x; } while (a === 0 || Math.abs(a) > 15);
+    text = `(${lin(1, a)}) / ${b} = ${fmt(c)}`;
+    const html = `<span class="frac"><span>${lin(1, a)}</span><span>${b}</span></span> = ${fmt(c)}`;
+    steps.push(`Multiply both sides by ${b}: ${lin(1, a)} = ${fmt(b * c)}`);
+    linearSteps(1, a, 0, b * c, steps);
+    return { kind, text, html, x, steps };
+  } else {
+    let a, b, c, d;
+    for (;;) {
+      a = randInt(3, 7); c = randInt(2, a - 1); b = nonZero(-6, 6);
+      const top = a * (x + b) - c * x;
+      if (top % c !== 0) continue;
+      d = top / c;
+      if (d !== 0 && Math.abs(d) <= 15) break;
+    }
+    text = `${bracket(a, b)} = ${bracket(c, d)}`;
+    steps.push(`Expand both brackets: ${lin(a, a * b)} = ${lin(c, c * d)}`);
+    linearSteps(a, a * b, c, c * d, steps);
+  }
+  return { kind, text, html: esc(text), x, steps };
+}
+
+function clock(ms) {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", startGame);
+
+function startGame() {
+  room = 0;
+  results = [];
+  startTime = performance.now();
+  clearInterval(timerId);
+  timerId = setInterval(() => { $("timer").textContent = clock(performance.now() - startTime); }, 250);
+  $("timer").textContent = "0:00";
+  show("game");
+  startRoom();
+}
+
+function startRoom() {
+  puzzle = makePuzzle(room);
+  tries = 0;
+  done = false;
+  $("roomTitle").textContent = `Room ${room + 1} of ${ROOMS}`;
+  $("roomType").textContent = KIND_NAMES[puzzle.kind];
+  $("equation").innerHTML = puzzle.html;
+  $("doorNum").textContent = room + 1;
+  $("lock").textContent = "🔒";
+  $("door").classList.remove("open");
+  $("ans").value = "";
+  $("ans").disabled = false;
+  $("unlockBtn").disabled = false;
+  $("msg").textContent = "";
+  $("feedback").hidden = true;
+  $("nextBtn").hidden = true;
+  renderProgress();
+  $("ans").focus();
+}
+
+function renderProgress() {
+  $("progress").innerHTML = Array.from({ length: ROOMS }, (_, i) => {
+    const r = results[i];
+    const cls = r ? (r.key ? "key" : "nokey") : i === room ? "now" : "";
+    return `<span class="${cls}">${i + 1}</span>`;
+  }).join("");
+  $("keys").textContent = `🔑 × ${results.filter((r) => r.key).length}`;
+}
+
+function stepsHtml(steps) {
+  return `<ol class="steps">${steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>`;
+}
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (done) return;
+  const v = parseNumber($("ans").value);
+  if (isNaN(v)) { $("msg").textContent = "Type a number, for example 4, −3 or 7/2."; return; }
+  $("msg").textContent = "";
+  tries++;
+  const fb = $("feedback");
+  fb.hidden = false;
+
+  if (Math.abs(v - puzzle.x) < 1e-9) {
+    done = true;
+    results.push({ text: puzzle.text, x: puzzle.x, key: true });
+    $("door").classList.add("open");
+    $("lock").textContent = "🔓";
+    fb.className = "feedback good";
+    fb.innerHTML = `<p><strong>🔓 Unlocked! You found a 🔑.</strong> Check: when x = ${fmt(puzzle.x)}, both sides are equal.</p>
+      <details><summary>See the working</summary>${stepsHtml(puzzle.steps)}</details>`;
+    finishRoom();
+  } else if (tries === 1) {
+    fb.className = "feedback bad";
+    fb.innerHTML = `<p><strong>🔒 The door won't budge.</strong> x = ${esc(fmt(v))} doesn't work. Here's a hint:</p>${stepsHtml([hint()])}<p class="muted" style="margin-top:6px">Try again: get this one right to keep your key.</p>`;
+    shake();
+    $("ans").select();
+  } else {
+    done = true;
+    results.push({ text: puzzle.text, x: puzzle.x, key: false });
+    fb.className = "feedback info";
+    fb.innerHTML = `<p><strong>Not this time.</strong> The answer is <strong>x = ${fmt(puzzle.x)}</strong>. Here's the full working:</p>${stepsHtml(puzzle.steps)}<p class="muted" style="margin-top:6px">The door opens, but there's no key for this room.</p>`;
+    $("door").classList.add("open");
+    $("lock").textContent = "🔓";
+    finishRoom();
+  }
+});
+
+// The first step of the working, without giving away a one-step answer.
+function hint() {
+  const first = puzzle.steps[0];
+  return puzzle.steps.length > 1 ? first : first.split(":")[0] + ", and you'll have x on its own.";
+}
+
+function shake() {
+  const d = $("door");
+  d.classList.remove("shake");
+  void d.offsetWidth;
+  d.classList.add("shake");
+}
+
+function finishRoom() {
+  $("ans").disabled = true;
+  $("unlockBtn").disabled = true;
+  $("nextBtn").textContent = room + 1 < ROOMS ? "Next room →" : "Escape! 🎉";
+  $("nextBtn").hidden = false;
+  renderProgress();
+  $("nextBtn").focus();
+}
+
+$("nextBtn").addEventListener("click", () => {
+  room++;
+  if (room < ROOMS) startRoom();
+  else finish();
+});
+
+function finish() {
+  clearInterval(timerId);
+  const time = performance.now() - startTime;
+  const keys = results.filter((r) => r.key).length;
+  $("overStats").textContent = `${keys}/10 keys 🔑 · time ${clock(time)}`;
+  const best = loadBest();
+  const isBest = !best || keys > best.keys || (keys === best.keys && time < best.time);
+  if (isBest) saveBest({ keys, time });
+  $("overText").textContent = (isBest ? "🏅 New personal best on this device! " : "") +
+    (keys === 10 ? "Every door unlocked within two tries. Can you go faster?" : "Play again to collect all 10 keys.");
+  $("resultRows").innerHTML = "";
+  results.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    for (const v of [i + 1, r.text, fmt(r.x), r.key ? "🔑" : "–"]) {
+      const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+    }
+    $("resultRows").appendChild(tr);
+  });
+  showBest();
+  show("over");
+}
+</script>
+</body>
+</html>

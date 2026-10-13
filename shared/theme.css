@@ -1,0 +1,88 @@
+/* Shared look for the games: dark "sea" theme, panels, buttons and grids. */
+:root {
+  --bg: #0b1630;
+  --panel: #13224a;
+  --panel-2: #1a2d5e;
+  --line: #2f4a8f;
+  --text: #e8eefc;
+  --muted: #a3b3da;
+  --sea: #0f1f45;
+  --grid: #233a72;
+  --axis: #8fa3d6;
+  --gold: #ffb703;
+  --p0: #ff4d6d;
+  --p1: #3ddcff;
+  --good: #4ade80;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --radius: 14px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+main { max-width: 1150px; margin: 0 auto; padding: 16px; }
+h1, h2, h3 { line-height: 1.2; margin: 0 0 .5em; }
+h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); }
+h2 { font-size: 1.25rem; }
+p { margin: 0 0 .8em; }
+a { color: var(--p1); }
+code { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+.muted { color: var(--muted); }
+.home-link { display: inline-block; margin-bottom: 10px; color: var(--muted); text-decoration: none; font-size: .95rem; }
+.home-link:hover { color: var(--text); }
+.panel { background: var(--panel); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.spacer { flex: 1; }
+button {
+  font: inherit; font-weight: 600;
+  border-radius: 10px; padding: 10px 18px; cursor: pointer;
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+}
+button:hover:not(:disabled) { filter: brightness(1.2); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.primary { background: var(--p1); color: #062033; border-color: transparent; }
+button.go { background: var(--good); color: #052e16; border-color: transparent; }
+input[type=text], select {
+  font: inherit; background: #0a1430; color: var(--text);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%;
+}
+input[type=text]:focus, select:focus, button:focus-visible { outline: 2px solid var(--p1); outline-offset: 2px; }
+input.mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 1.2rem; }
+label { display: block; font-weight: 600; margin-bottom: 4px; }
+.field { margin-bottom: 14px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 600px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  main { padding: 12px; }
+  .panel { padding: 12px; }
+}
+.feedback { border-radius: 12px; padding: 12px 14px; margin-top: 12px; }
+.feedback.good { background: rgba(74, 222, 128, .12); border: 1px solid var(--good); }
+.feedback.bad { background: rgba(248, 113, 113, .12); border: 1px solid var(--bad); }
+.feedback.info { background: rgba(163, 179, 218, .1); border: 1px solid var(--line); }
+.feedback p:last-child { margin-bottom: 0; }
+.error { color: var(--bad); }
+kbd { background: var(--panel-2); border-radius: 5px; padding: 0 6px; font-size: .85em; }
+[hidden] { display: none !important; }
+
+/* Coordinate grids */
+svg.board { width: 100%; height: auto; display: block; user-select: none; touch-action: manipulation; }
+.sea { fill: var(--sea); }
+.gl { stroke: var(--grid); stroke-width: 1; }
+.axis { stroke: var(--axis); stroke-width: 2; }
+.tick { fill: var(--muted); font-size: 13px; font-family: inherit; }
+.axis-name { fill: var(--text); font-size: 15px; font-style: italic; font-weight: 700; }
+.draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw .7s ease-out forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+.shake { animation: shake .3s ease-in-out 2; }
+@media (prefers-reduced-motion: reduce) {
+  .draw { animation: none; stroke-dashoffset: 0; }
+  .shake { animation: none; }
+}
