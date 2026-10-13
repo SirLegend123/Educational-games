@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grid Lock</title>
+<meta name="description" content="Expand double brackets with the grid method: fill the grid, then collect like terms. From (x + 2)(x + 3) to (3x − 2)(2x + 5).">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .hud { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 10px; font-weight: 700; }
+  .locks { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .locks span { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; background: var(--panel-2); font-size: 1rem; }
+  .locks span.now { outline: 2px solid var(--p1); }
+  .question { font-size: clamp(1.7rem, 6vw, 2.6rem); font-weight: 800; text-align: center; padding: 16px 8px; background: #0a1430; border-radius: 12px; margin-bottom: 14px; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .question sup, .steps sup, .preview sup { font-size: .6em; }
+  .b1 { color: var(--p0); } .b2 { color: var(--p1); }
+  .step-title { font-weight: 700; margin: 4px 0 8px; }
+  table.grid { border-collapse: separate; border-spacing: 6px; margin: 0 auto 6px; }
+  table.grid th { font-size: 1.3rem; font-family: ui-monospace, "SF Mono", Consolas, monospace; padding: 6px 10px; border-radius: 8px; min-width: 70px; }
+  table.grid th.corner { color: var(--muted); }
+  table.grid th.top { background: rgba(61, 220, 255, .15); color: var(--p1); }
+  table.grid th.left { background: rgba(255, 77, 109, .15); color: var(--p0); }
+  table.grid td input { width: 110px; font-size: 1.2rem; text-align: center; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  @media (max-width: 420px) { table.grid td input { width: 86px; font-size: 1.05rem; } table.grid th { min-width: 50px; font-size: 1.1rem; } }
+  table.grid td input.ok { border-color: var(--good); background: rgba(74, 222, 128, .12); }
+  table.grid td input.bad { border-color: var(--bad); background: rgba(248, 113, 113, .12); }
+  table.grid td input.shown { border-color: var(--warn); background: rgba(251, 191, 36, .12); }
+  .answer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 1.2rem; }
+  .answer input { flex: 1 1 12em; min-width: 10em; max-width: 20em; font-size: 1.3rem; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .preview { min-height: 1.6em; margin-top: 6px; color: var(--muted); }
+  .preview .val { color: var(--text); font-weight: 700; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .steps { margin: 6px 0 0; padding-left: 1.4em; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .steps li { margin-bottom: 4px; }
+  .feedback.nudge { background: rgba(251, 191, 36, .12); border: 1px solid var(--warn); }
+  .rules li { margin-bottom: 6px; }
+  .check { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .check input { width: 20px; height: 20px; }
+  .demo { display: inline-table; margin: 6px 0 4px; }
+  table.results { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.results td, table.results th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  table.results td:nth-child(2), table.results td:nth-child(3) { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🔒 Grid Lock</h1>
+    <p class="muted">Twelve locks, each sealed with a pair of brackets. Expand them with the <strong>grid method</strong> to break free!</p>
+    <div class="panel">
+      <h2>The grid method: (x + 3)(x + 5)</h2>
+      <table class="grid demo" aria-label="Example grid">
+        <tr><th class="corner">×</th><th class="top">x</th><th class="top">+5</th></tr>
+        <tr><th class="left">x</th><td><input type="text" value="x²" disabled></td><td><input type="text" value="5x" disabled></td></tr>
+        <tr><th class="left">+3</th><td><input type="text" value="3x" disabled></td><td><input type="text" value="15" disabled></td></tr>
+      </table>
+      <ul class="rules">
+        <li><strong>Step 1:</strong> multiply each term on the left by each term on the top. Keep the signs: +3 × −5 = −15.</li>
+        <li><strong>Step 2:</strong> add up all four boxes and collect the like terms (the two x terms): x² + 5x + 3x + 15 = <strong>x² + 8x + 15</strong>.</li>
+        <li>Watch out for squares: (x + 4)² means (x + 4)(x + 4), so the answer is <strong>x² + 8x + 16</strong>, not x² + 16!</li>
+        <li>Type x² as <code>x^2</code> or <code>x²</code>.</li>
+      </ul>
+      <label class="check"><input type="checkbox" id="noGrid"> Expert mode: no grid, just type the answer</label>
+      <p class="muted" style="margin:10px 0 0">Each lock is worth 🔑🔑: one for the grid right first time, and one for the final answer right first time. A wrong answer gets a hint, and a second wrong answer shows the working.</p>
+      <p id="bestInfo" class="muted" style="margin:8px 0 0"></p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Start unlocking</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <span id="lockTitle">Lock 1 of 12</span>
+      <span class="spacer"></span>
+      <span>🔑 <span id="keys">0</span></span>
+    </div>
+    <div class="locks" id="locks" aria-hidden="true"></div>
+    <div class="panel">
+      <p class="muted" id="levelName" style="margin-bottom:6px"></p>
+      <div class="question" id="question" aria-live="polite"></div>
+
+      <form id="gridForm" autocomplete="off">
+        <p class="step-title">Step 1: fill in the grid</p>
+        <table class="grid" id="grid"></table>
+        <div class="row" style="justify-content:center"><button type="submit" class="go" id="gridBtn">Check the grid</button></div>
+        <div id="gridMsg"></div>
+      </form>
+
+      <form id="finalForm" autocomplete="off" hidden>
+        <p class="step-title" id="finalTitle">Step 2: add the boxes and collect like terms</p>
+        <div class="answer"><input type="text" id="ans" spellcheck="false" autocapitalize="off" placeholder="e.g. x^2 + 8x + 15"> <button type="submit" class="go" id="checkBtn">Unlock</button></div>
+        <div class="preview" id="preview"></div>
+        <div id="msg" class="error"></div>
+        <div id="feedback" hidden></div>
+      </form>
+      <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next lock →</button>
+    </div>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🔓🎉</div>
+      <h1>You broke free!</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">Play again (new locks)</button>
+    </div>
+    <div class="panel">
+      <h2>Your locks</h2>
+      <table class="results"><thead><tr><th>#</th><th>Brackets</th><th>Expanded</th><th>Keys</th></tr></thead><tbody id="resultRows"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script src="../shared/algebra.js"></script>
+<script>
+"use strict";
+const LOCKS = 12;
+const BEST_KEY = "gridLockBest";
+const { term, add, mul, eq, fmt, fmtTerms, termText, fromTerms, parse } = Alg;
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const T = (coef, key = "1") => ({ coef, key });
+const X = (c = 1) => T(c, "x");
+
+const LEVELS = [
+  "Warm up", "Warm up", "Warm up", "A minus sign", "A minus sign", "Two minus signs",
+  "Squaring a bracket", "Difference of two squares", "A number in front of x", "Numbers in front of both x terms",
+  "Squaring a harder bracket", "Final lock: no grid!",
+];
+
+function makeQuestion(i) {
+  const n = () => randInt(1, 9);
+  let L, R, square = false;
+  switch (i) {
+    case 0: case 1: case 2: L = [X(), T(n())]; R = [X(), T(n())]; break;
+    case 3: case 4: L = [X(), T(n())]; R = [X(), T(-n())]; break;
+    case 5: L = [X(), T(-n())]; R = [X(), T(-n())]; break;
+    case 6: { const a = n(); L = [X(), T(a)]; R = [X(), T(a)]; square = true; break; }
+    case 7: { const a = n(); L = [X(), T(a)]; R = [X(), T(-a)]; break; }
+    case 8: L = [X(randInt(2, 3)), T(n())]; R = [X(), T(pick([1, -1]) * n())]; break;
+    case 9: L = [X(randInt(2, 4)), T(n())]; R = [X(randInt(2, 3)), T(-n())]; break;
+    case 10: { const t = [X(randInt(2, 3)), T(-randInt(1, 5))]; L = t; R = t.map((x) => ({ ...x })); square = true; break; }
+    default: L = [X(randInt(2, 4)), T(-n())]; R = [X(randInt(2, 3)), T(n())];
+  }
+  return { L, R, square, noGrid: i === LOCKS - 1 };
+}
+
+const answerOf = (q) => mul(fromTerms(q.L), fromTerms(q.R));
+const cell = (q, r, c) => mul(fromTerms([q.L[r]]), fromTerms([q.R[c]]));
+function questionHtml(q, html = true) {
+  const a = `(${fmtTerms(q.L, html)})`, b = `(${fmtTerms(q.R, html)})`;
+  if (q.square) return html ? `<span class="b1">${a}</span>²` : `${a}²`;
+  return html ? `<span class="b1">${a}</span><span class="b2">${b}</span>` : a + b;
+}
+// Grid headings keep their sign: x, +3, −5, 2x.
+const head = (t, i) => { const s = termText(t.coef, t.key, true); return i > 0 && t.coef > 0 ? "+" + s : s; };
+
+let qs, idx, gridTries, finalTries, keys, results, expert, gridDone;
+
+function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
+function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
+function showBest() {
+  const b = loadBest();
+  $("bestInfo").textContent = b !== null ? `Your best on this device: ${b} out of ${LOCKS * 2} keys.` : "";
+}
+showBest();
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", () => show("start"));
+
+function startGame() {
+  expert = $("noGrid").checked;
+  qs = Array.from({ length: LOCKS }, (_, i) => makeQuestion(i));
+  idx = 0; keys = 0; results = [];
+  show("game");
+  startLock();
+}
+
+function renderLocks() {
+  $("locks").innerHTML = Array.from({ length: LOCKS }, (_, i) => {
+    const r = results[i];
+    return `<span class="${i === idx && !r ? "now" : ""}">${r ? "🔓" : "🔒"}</span>`;
+  }).join("");
+  $("keys").textContent = keys;
+}
+
+function startLock() {
+  const q = qs[idx];
+  gridTries = 0; finalTries = 0;
+  results[idx] = undefined;
+  q.gridKey = 0; q.finalKey = 0;
+  $("lockTitle").textContent = `Lock ${idx + 1} of ${LOCKS}`;
+  $("levelName").textContent = LEVELS[idx];
+  $("question").innerHTML = questionHtml(q);
+  const skipGrid = expert || q.noGrid;
+  gridDone = skipGrid;
+  $("gridForm").hidden = skipGrid;
+  $("finalTitle").textContent = skipGrid ? "Expand and simplify (no grid this time!)" : "Step 2: add the boxes and collect like terms";
+  $("finalForm").hidden = !skipGrid;
+  $("gridMsg").innerHTML = "";
+  $("gridBtn").disabled = false;
+  const g = $("grid");
+  g.innerHTML = `<tr><th class="corner">×</th>${q.R.map((t, i) => `<th class="top">${head(t, i)}</th>`).join("")}</tr>` +
+    q.L.map((t, r) => `<tr><th class="left">${head(t, r)}</th>${q.R.map((_, c) => `<td><input type="text" data-r="${r}" data-c="${c}" spellcheck="false" autocapitalize="off" aria-label="${termText(t.coef, t.key)} times ${termText(q.R[c].coef, q.R[c].key)}"></td>`).join("")}</tr>`).join("");
+  $("ans").value = ""; $("ans").disabled = false; $("checkBtn").disabled = false;
+  $("preview").innerHTML = ""; $("msg").textContent = "";
+  $("feedback").hidden = true; $("nextBtn").hidden = true;
+  renderLocks();
+  (skipGrid ? $("ans") : g.querySelector("input")).focus();
+}
+
+/* ---------- Step 1: the grid ---------- */
+
+$("gridForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const q = qs[idx];
+  const inputs = [...$("grid").querySelectorAll("input")];
+  let wrong = [];
+  for (const inp of inputs) {
+    const want = cell(q, +inp.dataset.r, +inp.dataset.c);
+    const r = parse(inp.value);
+    const ok = !r.error && !r.likeTerms && eq(r.poly, want);
+    inp.classList.toggle("ok", ok);
+    inp.classList.toggle("bad", !ok);
+    if (!ok) wrong.push(inp);
+  }
+  gridTries++;
+  if (!wrong.length) {
+    if (gridTries === 1) { keys++; q.gridKey = 1; }
+    inputs.forEach((i) => { i.disabled = true; });
+    $("gridBtn").disabled = true;
+    $("gridMsg").innerHTML = `<div class="feedback good"><p><strong>✅ Grid complete${gridTries === 1 ? "! +🔑" : "!"}</strong> Now add up the four boxes.</p></div>`;
+    return openFinal();
+  }
+  const hints = wrong.map((inp) => {
+    const a = q.L[+inp.dataset.r], b = q.R[+inp.dataset.c];
+    const at = termText(a.coef, a.key, true), bt = termText(b.coef, b.key, true);
+    return `${a.coef < 0 ? `(${at})` : at} × ${b.coef < 0 ? `(${bt})` : bt} = ?`;
+  });
+  if (gridTries === 1) {
+    $("gridMsg").innerHTML = `<div class="feedback bad"><p><strong>❌ ${wrong.length} box${wrong.length > 1 ? "es aren't" : " isn't"} right yet.</strong> Check: ${hints.join(", ")}</p><p class="muted">Remember x × x = x², and watch the signs: + × − = −, and − × − = +.</p></div>`;
+    wrong[0].focus();
+    return;
+  }
+  // Second try: fill in the correct values.
+  for (const inp of wrong) {
+    inp.value = fmt(cell(q, +inp.dataset.r, +inp.dataset.c));
+    inp.classList.remove("bad");
+    inp.classList.add("shown");
+  }
+  inputs.forEach((i) => { i.disabled = true; });
+  $("gridBtn").disabled = true;
+  $("gridMsg").innerHTML = `<div class="feedback info"><p>The yellow boxes have been filled in for you. Now add up the four boxes.</p></div>`;
+  openFinal();
+});
+
+function openFinal() {
+  gridDone = true;
+  $("finalForm").hidden = false;
+  $("ans").focus();
+}
+
+/* ---------- Step 2: collect like terms ---------- */
+
+$("ans").addEventListener("input", () => {
+  const r = parse($("ans").value);
+  $("preview").innerHTML = !$("ans").value.trim() || r.error ? "" : `You typed: <span class="val">${fmt(r.poly, { html: true, keys: r.terms.map((t) => t.key).filter((k, i, a) => a.indexOf(k) === i) })}</span>`;
+});
+
+function working(q) {
+  const cells = [];
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) cells.push(cell(q, r, c));
+  const steps = [];
+  if (q.square) steps.push(`${questionHtml(q, false)} = (${fmtTerms(q.L, true)})(${fmtTerms(q.R, true)})`);
+  steps.push(`The four boxes: ${cells.map((c) => fmt(c, { html: true })).join(", ")}`);
+  const all = cells.map((c, i) => { const s = fmt(c, { html: true }); return i === 0 ? s : s.startsWith("−") ? " − " + s.slice(1) : " + " + s; }).join("");
+  const middle = add(cells[1], cells[2]);
+  steps.push(`Collect the x terms: ${fmt(cells[1], { html: true })} ${cells[2].x < 0 ? "−" : "+"} ${fmt({ x: Math.abs(cells[2].x) }, { html: true })} = ${fmt(middle, { html: true })}`);
+  steps.push(`${all} = <strong>${fmt(answerOf(q), { html: true })}</strong>`);
+  return steps;
+}
+
+function spot(q, poly) {
+  const ans = answerOf(q);
+  const ends = add(cell(q, 0, 0), cell(q, 1, 1));
+  if (eq(poly, ends)) {
+    return q.square
+      ? `${questionHtml(q, false)} isn't just the first term squared plus the last term squared. It means (${fmtTerms(q.L, true)})(${fmtTerms(q.R, true)}), so there are two middle terms too.`
+      : "You're missing the middle terms: all four boxes need adding, and the two x terms collect together.";
+  }
+  // Same terms, but a sign is wrong somewhere.
+  const ka = Object.keys(ans).sort().join(), kp = Object.keys(poly).sort().join();
+  if (ka === kp && Object.keys(ans).every((k) => Math.abs(ans[k]) === Math.abs(poly[k]))) {
+    const bad = Object.keys(ans).filter((k) => ans[k] !== poly[k]).map((k) => termText(Math.abs(ans[k]), k, true));
+    return `Nearly: check the sign of ${bad.join(" and ")}. + × − = −, and − × − = +. When you collect the x terms, take care with the signs too.`;
+  }
+  if (ans.x !== undefined && poly.x !== undefined && poly.x !== ans.x && eq(add(poly, { x: -poly.x }), add(ans, { x: -ans.x }))) {
+    return `The x² and number terms are right, but the x term isn't. Collect the two middle boxes carefully: ${fmt(cell(q, 0, 1), { html: true })} and ${fmt(cell(q, 1, 0), { html: true })}.`;
+  }
+  return "";
+}
+
+$("finalForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (!$("nextBtn").hidden) return;
+  const q = qs[idx];
+  const r = parse($("ans").value);
+  if (r.error) { $("msg").textContent = r.error; return; }
+  $("msg").textContent = "";
+  const fb = $("feedback");
+  fb.hidden = false;
+  const skipGrid = expert || q.noGrid;
+  if (eq(r.poly, answerOf(q))) {
+    if (r.likeTerms) {
+      fb.className = "feedback nudge";
+      fb.innerHTML = `<p><strong>Nearly!</strong> That's right, but the like terms aren't collected yet. Combine the two x terms.</p><p class="muted">This doesn't count as a wrong try.</p>`;
+      return;
+    }
+    finalTries++;
+    const got = finalTries === 1 ? (skipGrid ? 2 : 1) : skipGrid ? 1 : 0;
+    keys += got;
+    q.finalKey = got;
+    fb.className = "feedback good";
+    fb.innerHTML = `<p><strong>🔓 Unlocked!${got ? " +" + "🔑".repeat(got) : ""}</strong></p><details><summary>See the working</summary><ol class="steps">${working(q).map((s) => `<li>${s}</li>`).join("")}</ol></details>`;
+    return finish();
+  }
+  finalTries++;
+  const mistake = spot(q, r.poly);
+  if (finalTries === 1) {
+    fb.className = "feedback bad";
+    fb.innerHTML = `<p><strong>❌ Still locked.</strong> ${mistake}</p><p>💡 ${skipGrid ? "Multiply each term in the first bracket by each term in the second (four multiplications), then collect the x terms." : "Add up all four boxes from your grid, then collect the two x terms into one."}</p><p class="muted">Try again!</p>`;
+    $("ans").select();
+    return;
+  }
+  fb.className = "feedback info";
+  fb.innerHTML = `<p><strong>The locksmith shows you how.</strong> ${mistake} The answer is <strong>${fmt(answerOf(q), { html: true })}</strong>.</p><ol class="steps">${working(q).map((s) => `<li>${s}</li>`).join("")}</ol>`;
+  finish();
+});
+
+function finish() {
+  const q = qs[idx];
+  $("ans").disabled = true; $("checkBtn").disabled = true;
+  results[idx] = { q, got: q.gridKey + q.finalKey };
+  $("nextBtn").textContent = idx + 1 < LOCKS ? "Next lock →" : "Break free 🎉";
+  $("nextBtn").hidden = false;
+  renderLocks();
+  $("nextBtn").focus();
+}
+
+$("nextBtn").addEventListener("click", () => {
+  idx++;
+  if (idx < LOCKS) startLock();
+  else gameOver();
+});
+
+function gameOver() {
+  const best = loadBest();
+  const isBest = best === null || keys > best;
+  if (isBest) saveBest(keys);
+  $("overStats").textContent = `🔑 ${keys} / ${LOCKS * 2} keys${expert ? " (expert mode)" : ""}`;
+  $("overText").textContent = (isBest ? "🏅 New best on this device! " : `Your best is ${best}. `) +
+    (keys === LOCKS * 2 ? "Every lock opened perfectly!" : expert ? "Play again for new locks." : "Feeling confident? Try expert mode, with no grid.");
+  $("resultRows").innerHTML = "";
+  results.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    for (const v of [i + 1, questionHtml(r.q, false).replace(/<[^>]+>/g, ""), fmt(answerOf(r.q)), "🔑".repeat(r.got) || "–"]) {
+      const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+    }
+    $("resultRows").appendChild(tr);
+  });
+  showBest();
+  show("over");
+}
+</script>
+</body>
+</html>

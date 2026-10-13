@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bracket Factory</title>
+<meta name="description" content="Expand single brackets to fill the factory's orders, from 3(x + 4) to expanding and simplifying 5(x + 1) − 2(x − 3).">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .hud { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 10px; font-weight: 700; }
+  .belt { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: repeating-linear-gradient(90deg, #1a2d5e 0 18px, #13224a 18px 36px); margin-bottom: 14px; }
+  .belt span { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; font-size: 1.2rem; background: rgba(255,255,255,.06); }
+  .belt span.now { outline: 2px solid var(--p1); }
+  .belt span.done { background: rgba(255, 183, 3, .25); }
+  .order-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .order-head .machine { font-size: 2.4rem; }
+  .question { font-size: clamp(1.7rem, 6vw, 2.6rem); font-weight: 800; text-align: center; padding: 18px 8px; background: #0a1430; border-radius: 12px; margin-bottom: 14px; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .question sup, .preview sup, .steps sup { font-size: .6em; }
+  .question .outer { color: var(--gold); }
+  .answer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 1.2rem; }
+  .answer input { flex: 1 1 12em; min-width: 10em; max-width: 20em; font-size: 1.3rem; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .preview { min-height: 1.8em; margin-top: 8px; color: var(--muted); }
+  .preview .val { color: var(--text); font-weight: 700; font-size: 1.15rem; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .steps { margin: 6px 0 0; padding-left: 1.4em; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .steps li { margin-bottom: 4px; }
+  .feedback.nudge { background: rgba(251, 191, 36, .12); border: 1px solid var(--warn); }
+  .rules li { margin-bottom: 6px; }
+  table.results { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.results td, table.results th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  table.results td:nth-child(2), table.results td:nth-child(3) { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🏭 Bracket Factory</h1>
+    <p class="muted">The factory's bracket-expanding machine has broken down! Fill 12 orders by expanding the brackets yourself.</p>
+    <div class="panel">
+      <h2>How to expand a bracket</h2>
+      <ul class="rules">
+        <li>Multiply <strong>every</strong> term inside the bracket by the term outside: 3(x + 4) = 3 × x + 3 × 4 = <strong>3x + 12</strong>.</li>
+        <li>Watch the signs: −2(x − 5) = −2 × x + (−2) × (−5) = <strong>−2x + 10</strong>. A negative times a negative is a positive!</li>
+        <li>x × x = <strong>x²</strong>, so x(x + 3) = <strong>x² + 3x</strong>.</li>
+        <li><strong>Expand and simplify</strong>: expand each bracket, then collect like terms. With 5(x + 1) − 2(x − 3), the −2 multiplies <em>both</em> terms in the second bracket.</li>
+        <li>Type answers like <code>3x + 12</code> or <code>x^2 + 3x</code> (or use ² for squared).</li>
+      </ul>
+      <p class="muted" style="margin:0">Right first time: 📦📦. Right on the second try: 📦. A wrong answer gets a hint, and a second wrong answer shows the working.</p>
+      <p id="bestInfo" class="muted" style="margin:8px 0 0"></p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Start the shift</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <span id="orderTitle">Order 1 of 12</span>
+      <span class="spacer"></span>
+      <span>📦 <span id="boxes">0</span></span>
+    </div>
+    <div class="belt" id="belt" aria-hidden="true"></div>
+    <form id="form" class="panel" autocomplete="off">
+      <div class="order-head"><span class="machine">⚙️</span><div><strong id="levelName"></strong><div class="muted" id="instruction"></div></div></div>
+      <div class="question" id="question" aria-live="polite"></div>
+      <label for="ans">Your expansion</label>
+      <div class="answer"><input type="text" id="ans" spellcheck="false" autocapitalize="off" placeholder="e.g. 3x + 12"> <button type="submit" class="go" id="checkBtn">Check</button></div>
+      <div class="preview" id="preview"></div>
+      <div id="msg" class="error"></div>
+      <div id="feedback" hidden></div>
+      <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next order →</button>
+    </form>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🏭📦</div>
+      <h1>Shift complete!</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">Another shift (new orders)</button>
+    </div>
+    <div class="panel">
+      <h2>Your orders</h2>
+      <table class="results"><thead><tr><th>#</th><th>Expression</th><th>Expanded</th><th>Boxes</th></tr></thead><tbody id="resultRows"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script src="../shared/algebra.js"></script>
+<script>
+"use strict";
+const ORDERS = 12;
+const BEST_KEY = "bracketFactoryBest";
+const { term, add, mul, eq, fmt, fmtTerms, termText, fromTerms, parse } = Alg;
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const sgn = () => (Math.random() < 0.5 ? 1 : -1);
+const T = (coef, key = "1") => ({ coef, key });
+
+const LEVELS = [
+  "Number outside", "Number outside, minus inside", "Bigger terms", "Negative outside",
+  "Negative outside, minus inside", "x outside", "x-terms outside", "Two letters",
+  "Negative x outside", "Expand and simplify", "Expand and simplify (subtracting)", "Final order: double negative",
+];
+
+// A question is a list of products k × (bracket); the answer is their sum.
+function makeQuestion(i) {
+  const c = () => randInt(1, 9);
+  switch (i) {
+    case 0: return [{ k: T(randInt(2, 9)), inner: [T(1, "x"), T(c())] }];
+    case 1: return [{ k: T(randInt(2, 9)), inner: [T(1, "x"), T(-c())] }];
+    case 2: return [{ k: T(randInt(2, 6)), inner: [T(randInt(2, 5), "x"), T(sgn() * c())] }];
+    case 3: return [{ k: T(-randInt(2, 9)), inner: [T(1, "x"), T(c())] }];
+    case 4: return [{ k: T(-randInt(2, 6)), inner: [T(randInt(1, 4), "x"), T(-c())] }];
+    case 5: return [{ k: T(1, "x"), inner: [T(1, "x"), T(sgn() * c())] }];
+    case 6: return [{ k: T(randInt(2, 5), "x"), inner: [T(randInt(2, 4), "x"), T(sgn() * c())] }];
+    case 7: {
+      const [u, v] = pick([["a", "b"], ["p", "q"], ["x", "y"]]);
+      return [{ k: T(sgn() * randInt(2, 7)), inner: [T(randInt(2, 5), u), T(sgn() * randInt(2, 6), v)] }];
+    }
+    case 8: return [{ k: T(-randInt(1, 3), "x"), inner: [T(1, "x"), T(sgn() * c())] }];
+    case 9: return [{ k: T(randInt(2, 6)), inner: [T(1, "x"), T(sgn() * c())] }, { k: T(randInt(2, 6)), inner: [T(randInt(1, 3), "x"), T(sgn() * c())] }];
+    case 10: return [{ k: T(randInt(3, 7)), inner: [T(1, "x"), T(sgn() * c())] }, { k: T(-randInt(2, 5)), inner: [T(1, "x"), T(c())] }];
+    default: return [{ k: T(randInt(3, 7)), inner: [T(randInt(1, 2), "x"), T(sgn() * c())] }, { k: T(-randInt(2, 5)), inner: [T(1, "x"), T(-c())] }];
+  }
+}
+
+const product = (p) => mul(term(p.k.coef, p.k.key), fromTerms(p.inner));
+const answerOf = (q) => q.reduce((acc, p) => add(acc, product(p)), {});
+
+// The question as HTML (or text), e.g. 5(x + 1) − 2(x − 3).
+function questionText(q, html) {
+  return q.map((p, i) => {
+    let k = termText(p.k.coef, p.k.key, html);
+    if (i > 0) k = p.k.coef < 0 ? " − " + k.slice(1) : " + " + k;
+    if (k === "1" || k === " + 1") k = i ? " + " : "";
+    if (html) k = `<span class="outer">${k}</span>`;
+    return `${k}(${fmtTerms(p.inner, html)})`;
+  }).join("");
+}
+
+function working(q) {
+  const steps = [];
+  for (const p of q) {
+    const k = termText(p.k.coef, p.k.key, true);
+    const kP = p.k.coef < 0 ? `(${k})` : k;
+    const parts = p.inner.map((t) => {
+      const tt = termText(t.coef, t.key, true);
+      return `${kP} × ${t.coef < 0 ? `(${tt})` : tt} = ${termText(p.k.coef * t.coef, Alg.keyOf({ ...Alg.varsOf(p.k.key), ...mergeVars(p.k.key, t.key) }), true)}`;
+    });
+    steps.push(`${parts.join(", ")}  →  ${fmt(product(p), { html: true })}`);
+  }
+  if (q.length > 1) {
+    const joined = q.map((p, i) => { const s = fmt(product(p), { html: true }); return i === 0 ? s : (s.startsWith("−") ? " − " + s.slice(1) : " + " + s); }).join("");
+    steps.push(`Collect like terms: ${joined} = ${fmt(answerOf(q), { html: true })}`);
+  }
+  return steps;
+}
+function mergeVars(a, b) {
+  const va = Alg.varsOf(a), vb = Alg.varsOf(b);
+  for (const v in vb) va[v] = (va[v] || 0) + vb[v];
+  return va;
+}
+
+function hint(q, i) {
+  if (q.length > 1) return "Expand each bracket separately, multiplying every term inside by the term in front (including its sign!). Then collect the x terms and the number terms.";
+  const p = q[0];
+  if (p.k.key !== "1") return `Multiply each term inside by ${termText(p.k.coef, p.k.key)}. Remember x × x = x², and multiply the numbers in front.`;
+  if (p.k.coef < 0) return `Multiply each term inside by ${termText(p.k.coef, "1")}. Negative × positive = negative, and negative × negative = positive.`;
+  return `Multiply each term inside the bracket by ${p.k.coef}, not just the first one.`;
+}
+
+// Classic mistakes, worked out from the question.
+function spot(q, poly) {
+  const correct = answerOf(q);
+  for (let i = 0; i < q.length; i++) {
+    const p = q[i];
+    // Only the first term multiplied.
+    const firstOnly = add(add(correct, product(p), -1), add(mul(term(p.k.coef, p.k.key), fromTerms([p.inner[0]])), fromTerms(p.inner.slice(1))));
+    if (eq(poly, firstOnly)) return `It looks like you only multiplied the first term by ${termText(p.k.coef, p.k.key)}. The term outside multiplies <strong>everything</strong> inside the bracket.`;
+    // One sign wrong.
+    for (const t of p.inner) {
+      const one = mul(term(p.k.coef, p.k.key), fromTerms([t]));
+      if (eq(poly, add(correct, one, -2))) {
+        return p.k.coef < 0
+          ? `Check your signs: the ${termText(p.k.coef, p.k.key)} multiplies every term, so ${termText(p.k.coef, p.k.key)} × ${t.coef < 0 ? `(${termText(t.coef, t.key)})` : termText(t.coef, t.key)} = ${fmt(one)}. ${t.coef < 0 ? "A negative times a negative is a positive." : "A negative times a positive is a negative."}`
+          : `Check the sign of ${fmt(one).replace(/^−/, "")}: ${termText(p.k.coef, p.k.key)} × ${t.coef < 0 ? `(${termText(t.coef, t.key)})` : termText(t.coef, t.key)} = ${fmt(one)}.`;
+      }
+    }
+  }
+  return "";
+}
+
+let qs, idx, tries, boxes, results;
+
+function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
+function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
+function showBest() {
+  const b = loadBest();
+  $("bestInfo").textContent = b !== null ? `Your best on this device: ${b} out of ${ORDERS * 2} boxes.` : "";
+}
+showBest();
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", startGame);
+
+function startGame() {
+  qs = Array.from({ length: ORDERS }, (_, i) => makeQuestion(i));
+  idx = 0; boxes = 0; results = [];
+  show("game");
+  startOrder();
+}
+
+function renderBelt() {
+  $("belt").innerHTML = Array.from({ length: ORDERS }, (_, i) => {
+    const r = results[i];
+    return `<span class="${r ? "done" : i === idx ? "now" : ""}">${r ? (r.got ? "📦" : "🔧") : i === idx ? "⚙️" : "·"}</span>`;
+  }).join("");
+  $("boxes").textContent = boxes;
+}
+
+function startOrder() {
+  const q = qs[idx];
+  tries = 0;
+  $("orderTitle").textContent = `Order ${idx + 1} of ${ORDERS}`;
+  $("levelName").textContent = LEVELS[idx];
+  $("instruction").textContent = q.length > 1 ? "Expand and simplify." : "Expand the bracket.";
+  $("question").innerHTML = questionText(q, true);
+  $("ans").value = ""; $("ans").disabled = false; $("checkBtn").disabled = false;
+  $("preview").innerHTML = ""; $("msg").textContent = "";
+  $("feedback").hidden = true; $("nextBtn").hidden = true;
+  renderBelt();
+  $("ans").focus();
+}
+
+$("ans").addEventListener("input", () => {
+  const r = parse($("ans").value);
+  $("preview").innerHTML = !$("ans").value.trim() || r.error ? "" : `You typed: <span class="val">${fmt(r.poly, { html: true, keys: r.terms.map((t) => t.key).filter((k, i, a) => a.indexOf(k) === i) })}</span>`;
+});
+
+const stepsHtml = (steps) => `<ol class="steps">${steps.map((s) => `<li>${s}</li>`).join("")}</ol>`;
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (!$("nextBtn").hidden) return;
+  const q = qs[idx];
+  const r = parse($("ans").value);
+  if (r.error) { $("msg").textContent = r.error; return; }
+  $("msg").textContent = "";
+  const fb = $("feedback");
+  fb.hidden = false;
+  const correct = answerOf(q);
+  if (eq(r.poly, correct)) {
+    if (r.likeTerms) {
+      fb.className = "feedback nudge";
+      fb.innerHTML = `<p><strong>Nearly!</strong> That's right, but some like terms can still be collected. Simplify it fully.</p><p class="muted">This doesn't count as a wrong try.</p>`;
+      return;
+    }
+    tries++;
+    const got = tries === 1 ? 2 : 1;
+    boxes += got;
+    results[idx] = { q, got };
+    fb.className = "feedback good";
+    fb.innerHTML = `<p><strong>✅ Order filled! +${"📦".repeat(got)}</strong></p><details><summary>See the working</summary>${stepsHtml(working(q))}</details>`;
+    return finish();
+  }
+  tries++;
+  const mistake = spot(q, r.poly);
+  if (tries === 1) {
+    fb.className = "feedback bad";
+    fb.innerHTML = `<p><strong>❌ The machine rejects it.</strong> ${mistake}</p><p>💡 ${hint(q)}</p><p class="muted">Try again!</p>`;
+    $("ans").select();
+    $("form").classList.remove("shake"); void $("form").offsetWidth; $("form").classList.add("shake");
+    return;
+  }
+  results[idx] = { q, got: 0 };
+  fb.className = "feedback info";
+  fb.innerHTML = `<p><strong>The supervisor shows you how.</strong> ${mistake} The answer is <strong>${fmt(correct, { html: true })}</strong>.</p>${stepsHtml(working(q))}`;
+  finish();
+});
+
+function finish() {
+  $("ans").disabled = true; $("checkBtn").disabled = true;
+  $("nextBtn").textContent = idx + 1 < ORDERS ? "Next order →" : "Clock off 🏁";
+  $("nextBtn").hidden = false;
+  renderBelt();
+  $("nextBtn").focus();
+}
+
+$("nextBtn").addEventListener("click", () => {
+  idx++;
+  if (idx < ORDERS) startOrder();
+  else gameOver();
+});
+
+function gameOver() {
+  const best = loadBest();
+  const isBest = best === null || boxes > best;
+  if (isBest) saveBest(boxes);
+  $("overStats").textContent = `📦 ${boxes} / ${ORDERS * 2} boxes`;
+  $("overText").textContent = (isBest ? "🏅 New best on this device! " : `Your best is ${best}. `) +
+    (boxes === ORDERS * 2 ? "Employee of the month: every order right first time!" : "Another shift brings new orders.");
+  $("resultRows").innerHTML = "";
+  results.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    for (const v of [i + 1, questionText(r.q, false), fmt(answerOf(r.q)), "📦".repeat(r.got) || "–"]) {
+      const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+    }
+    $("resultRows").appendChild(tr);
+  });
+  showBest();
+  show("over");
+}
+</script>
+</body>
+</html>

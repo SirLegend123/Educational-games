@@ -55,6 +55,7 @@
       <button type="button" class="chip" data-topic="primes" aria-pressed="true">🏰 Primes &amp; factors</button>
       <button type="button" class="chip" data-topic="fractions" aria-pressed="true">🍰 Fractions</button>
       <button type="button" class="chip" data-topic="standard-form" aria-pressed="true">🚀 Standard form</button>
+      <button type="button" class="chip" data-topic="expressions" aria-pressed="true">🧮 Expressions</button>
       <button type="button" class="chip" data-topic="equations" aria-pressed="true">⚖️ Equations</button>
       <button type="button" class="chip" data-topic="sequences" aria-pressed="true">🔁 Sequences</button>
       <button type="button" class="chip" data-topic="graphs" aria-pressed="true">📈 Straight-line graphs</button>
@@ -116,6 +117,25 @@
         <h3>Standard Form Bank Heist</h3>
         <p>Crack 12 vaults by multiplying, dividing, adding and subtracting in standard form. Don't forget to adjust, or the alarm goes off!</p>
         <div class="tags">Four operations in standard form · 1 player</div>
+      </a>
+    </div>
+  </section>
+
+  <section class="topic" id="expressions">
+    <h2>🧮 Expressions</h2>
+    <p>Expanding single and double brackets.</p>
+    <div class="games">
+      <a class="card" href="bracket-factory/">
+        <div class="icon">🏭</div>
+        <h3>Bracket Factory</h3>
+        <p>Fill 12 orders by expanding single brackets, from 3(x + 4) to expanding and simplifying 5(x + 1) − 2(x − 3).</p>
+        <div class="tags">Expanding single brackets · 1 player</div>
+      </a>
+      <a class="card" href="grid-lock/">
+        <div class="icon">🔒</div>
+        <h3>Grid Lock</h3>
+        <p>Break 12 locks by expanding double brackets with the grid method, from (x + 2)(x + 3) to (3x − 2)². Expert mode skips the grid.</p>
+        <div class="tags">Expanding double brackets · 1 player</div>
       </a>
     </div>
   </section>
@@ -195,9 +215,12 @@ const ALL = chips.map((c) => c.dataset.topic);
 function readStored() {
   try { return JSON.parse(localStorage.getItem(TOPIC_KEY)); } catch { return null; }
 }
+// Saved as { chosen, known }: known lists the topics that existed when the
+// choice was made, so topics added to the site later still appear.
 function store(list) {
-  try { localStorage.setItem(TOPIC_KEY, JSON.stringify(list)); } catch { /* storage unavailable */ }
+  try { localStorage.setItem(TOPIC_KEY, JSON.stringify({ chosen: list, known: ALL })); } catch { /* storage unavailable */ }
 }
+const FIRST_TOPICS = ["primes", "fractions", "standard-form", "equations", "sequences", "graphs"];
 
 function initialTopics() {
   const param = new URLSearchParams(location.search).get("topics");
@@ -206,7 +229,11 @@ function initialTopics() {
     if (list.length) return list;
   }
   const saved = readStored();
-  return Array.isArray(saved) ? saved.filter((t) => ALL.includes(t)) : ALL;
+  if (!saved) return ALL;
+  // Older saves were a plain list, made when only FIRST_TOPICS existed.
+  const chosenBefore = Array.isArray(saved) ? saved : saved.chosen || [];
+  const known = Array.isArray(saved) ? FIRST_TOPICS : saved.known || ALL;
+  return ALL.filter((t) => chosenBefore.includes(t) || !known.includes(t));
 }
 
 let chosen = initialTopics();
@@ -267,6 +294,8 @@ const BESTS = {
   "nth-term-vault/": () => { const b = read("nthTermVaultBest"); return b !== null && `${b} / 20 🔑`; },
   "matchstick-patterns/": () => { const b = read("matchstickPatternsBest"); return b !== null && `${b} / 16 ⭐`; },
   "sequence-sniper/": () => { const b = read("sequenceSniperBest"); return b !== null && `${b} points`; },
+  "bracket-factory/": () => { const b = read("bracketFactoryBest"); return b !== null && `${b} / 24 📦`; },
+  "grid-lock/": () => { const b = read("gridLockBest"); return b !== null && `${b} / 24 🔑`; },
   "parallel-parking/": () => { const b = read("parallelParkingBest"); return b !== null && `${b} / 30 ⭐`; },
 };
 for (const card of document.querySelectorAll("a.card")) {

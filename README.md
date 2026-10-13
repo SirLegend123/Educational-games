@@ -4,7 +4,7 @@ A collection of free browser-based educational games. Each game is a self-contai
 
 ## Games
 
-The home page groups the games by topic. Students can tap topics on or off to build their own revision page (remembered on their device), and each card shows their best score in that game. **Copy a link to these topics** gives a link like `https://sirlegend123.github.io/Educational-games/?topics=fractions,standard-form` that opens with just those topics, handy for setting revision for a class. The topic names are `primes`, `fractions`, `standard-form`, `equations`, `sequences` and `graphs`.
+The home page groups the games by topic. Students can tap topics on or off to build their own revision page (remembered on their device), and each card shows their best score in that game. **Copy a link to these topics** gives a link like `https://sirlegend123.github.io/Educational-games/?topics=fractions,standard-form` that opens with just those topics, handy for setting revision for a class. The topic names are `primes`, `fractions`, `standard-form`, `expressions`, `equations`, `sequences` and `graphs`.
 
 | Topic | Game | Skill | Players |
 | --- | --- | --- | --- |
@@ -13,6 +13,8 @@ The home page groups the games by topic. Students can tap topics on or off to bu
 | Fractions | [Mixed Number Mountain](mixed-number-mountain/) | Converting mixed numbers and the four operations with them | 1 |
 | Standard form | [Standard Form Space Race](standard-form-race/) | Writing, reading and comparing numbers in standard form | 1 |
 | Standard form | [Standard Form Bank Heist](standard-form-heist/) | The four operations with numbers in standard form | 1 |
+| Expressions | [Bracket Factory](bracket-factory/) | Expanding single brackets, and expanding and simplifying | 1 |
+| Expressions | [Grid Lock](grid-lock/) | Expanding double brackets with the grid method | 1 |
 | Equations | [Equation Escape Room](equation-escape/) | Solving linear equations | 1 |
 | Sequences | [Nth Term Vault](nth-term-vault/) | Finding and using the nth term of linear sequences | 1 |
 | Sequences | [Matchstick Patterns](matchstick-patterns/) | Linear sequences from patterns, and why the rule works | 1 |
@@ -77,6 +79,14 @@ Twelve checkpoints up a mountain. It starts with converting between mixed number
 ### Standard Form Bank Heist
 
 Twelve vaults: multiplying, dividing (each with and without adjusting the front number), negative powers, adding and subtracting with the same and different powers, and a final vault where the answer crosses into a new power. Answers are checked exactly, and the feedback spots the classic mistakes: not adjusting (e.g. `12 × 10⁹`), multiplying the powers, subtracting the powers the wrong way round, and adding the front numbers when the powers differ. The working shows each step, plus an ordinary-number check for addition and subtraction. Loot is £1,000 × the vault number, or half on a second try.
+
+### Bracket Factory
+
+Twelve orders on a factory conveyor belt, each a single bracket to expand. They progress through a number outside, minus signs inside, a negative outside, x or 2x outside (making x² terms), two letters, a negative x outside, then "expand and simplify" with two brackets, including subtracting a bracket and the double-negative trap in `6(2x + 7) − 2(x − 9)`. Answers like `3x + 12` or `x^2 + 3x` are read in any order. An answer with uncollected like terms is sent back without counting as wrong. Feedback spots multiplying only the first term and sign errors, and the working shows every multiplication.
+
+### Grid Lock
+
+Twelve locks, each a pair of brackets to expand with the grid method. Step 1: fill a 2 × 2 grid, with each box checked separately and a hint like `x × (−9) = ?` for wrong boxes. Step 2: add the boxes and collect like terms. It progresses from `(x + a)(x + b)` through minus signs, squaring a bracket, the difference of two squares, and numbers in front of x, to a final lock with no grid. Feedback catches the classic `(x + 5)² = x² + 25` mistake, sign errors and wrongly collected x terms. Expert mode removes the grid entirely.
 
 ## Sharing the games (GitHub Pages)
 
