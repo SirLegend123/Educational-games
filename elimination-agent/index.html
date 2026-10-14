@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elimination Agent</title>
+<meta name="description" content="Crack secret codes by solving simultaneous equations algebraically with the elimination method, step by step.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .hud { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 10px; font-weight: 700; }
+  .files { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .files span { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; background: var(--panel-2); font-size: 1rem; }
+  .files span.now { outline: 2px solid var(--p1); }
+  .dossier { background: #0a1430; border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; border-left: 4px solid var(--gold); }
+  .story { margin: 0 0 10px; }
+  .eqs { display: grid; gap: 6px; font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: clamp(1.25rem, 4.5vw, 1.7rem); font-weight: 800; }
+  .eqs .tag { display: inline-block; width: 2em; color: var(--gold); }
+  .work { display: grid; gap: 10px; margin-bottom: 12px; }
+  .work-step { background: rgba(74, 222, 128, .07); border: 1px solid rgba(74, 222, 128, .35); border-radius: 10px; padding: 10px 12px; }
+  .work-step .label { font-size: .85rem; color: var(--good); font-weight: 700; margin-bottom: 4px; }
+  .calc { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 1.15rem; line-height: 1.6; }
+  .calc .line { border-top: 2px solid var(--text); display: inline-block; padding-top: 2px; }
+  .calc .op { color: var(--gold); font-weight: 800; }
+  .stepbox { background: var(--panel-2); border-radius: 12px; padding: 14px 16px; }
+  .stepbox h3 { margin: 0 0 8px; font-size: 1.05rem; }
+  .mults { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; font-size: 1.25rem; font-weight: 700; font-family: ui-monospace, "SF Mono", Consolas, monospace; margin-bottom: 10px; }
+  .mults input { width: 3.2em; text-align: center; font-size: 1.2rem; }
+  .vals { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 1.3rem; font-weight: 700; font-family: ui-monospace, "SF Mono", Consolas, monospace; margin-bottom: 10px; }
+  .vals input { width: 5em; text-align: center; font-size: 1.2rem; }
+  .choice { display: flex; gap: 10px; flex-wrap: wrap; }
+  .choice button { font-size: 1.15rem; padding: 12px 22px; }
+  .feedback.nudge { background: rgba(251, 191, 36, .12); border: 1px solid var(--warn); }
+  .rules li { margin-bottom: 6px; }
+  .check { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .check input { width: 20px; height: 20px; }
+  table.results { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.results td, table.results th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.results td:nth-child(2) { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🕵️ Elimination Agent</h1>
+    <p class="muted">HQ has intercepted pairs of coded clues. Each pair hides two secret numbers, <strong>x</strong> and <strong>y</strong>. Crack all ten codes by solving the simultaneous equations with the <strong>elimination method</strong>.</p>
+    <div class="panel">
+      <h2>Agent training: the elimination method</h2>
+      <ol class="rules">
+        <li><strong>Match:</strong> multiply one or both equations so the x terms, or the y terms, are the same size.</li>
+        <li><strong>Eliminate:</strong> if the matching terms have the <strong>same sign, subtract</strong> the equations. If they have <strong>different signs, add</strong> them. That letter disappears!</li>
+        <li><strong>Solve</strong> the equation that's left to find one letter.</li>
+        <li><strong>Substitute</strong> it back into one of the original equations to find the other letter.</li>
+        <li><strong>Check</strong> both values work in the other equation.</li>
+      </ol>
+      <label class="check"><input type="checkbox" id="expert"> Expert agent: skip the steps, just type x and y</label>
+      <p class="muted" style="margin:10px 0 0">Each step right first time earns a 🗝️ (up to 4 per code). A wrong answer gets a hint, and a second wrong answer shows the working.</p>
+      <p id="bestInfo" class="muted" style="margin:8px 0 0"></p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Accept the mission</button>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <span id="missionTitle">Code 1 of 10</span>
+      <span class="spacer"></span>
+      <span>🗝️ <span id="score">0</span></span>
+    </div>
+    <div class="files" id="files" aria-hidden="true"></div>
+    <div class="panel">
+      <p class="muted" id="levelName" style="margin-bottom:6px"></p>
+      <div class="dossier">
+        <p class="story" id="story" hidden></p>
+        <div class="eqs" id="eqs"></div>
+      </div>
+      <div class="work" id="work" aria-live="polite"></div>
+      <form id="form" class="stepbox" autocomplete="off">
+        <div id="stepBox"></div>
+        <div id="keypad"></div>
+        <div id="msg" class="error" style="margin-top:8px"></div>
+        <div id="feedback" hidden></div>
+      </form>
+      <button type="button" class="primary" id="nextBtn" style="margin-top:12px" hidden>Next code →</button>
+    </div>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🕵️✅</div>
+      <h1>All codes cracked!</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <button type="button" class="primary" id="againBtn">New mission (new codes)</button>
+    </div>
+    <div class="panel">
+      <h2>Mission report</h2>
+      <table class="results"><thead><tr><th>#</th><th>Equations</th><th>Solution</th><th>Keys</th></tr></thead><tbody id="resultRows"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script src="../shared/lines.js"></script>
+<script src="../shared/keypad.js"></script>
+<script>
+"use strict";
+const MISSIONS = 10;
+const BEST_KEY = "eliminationAgentBest";
+const { parseNumber, randInt, pick } = Lines;
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const pad = Keypad.create($("keypad"), {
+  inputs: () => [...$("stepBox").querySelectorAll("input")],
+  keys: [Keypad.key("−", "−"), Keypad.key("/"), Keypad.key(".")],
+});
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
+const lcm = (a, b) => Math.abs(a * b) / gcd(a, b);
+const num = (v) => (v < 0 ? "−" + -v : String(v));
+const paren = (v) => (v < 0 ? `(${num(v)})` : num(v));
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+/* ---------- Equations ax + by = c ---------- */
+
+function term(coef, letter, first) {
+  if (coef === 0) return "";
+  const mag = Math.abs(coef) === 1 ? letter : Math.abs(coef) + letter;
+  if (first) return (coef < 0 ? "−" : "") + mag;
+  return (coef < 0 ? " − " : " + ") + mag;
+}
+function eqText(e) {
+  const left = (term(e.a, "x", true) + term(e.b, "y", !e.a)) || "0";
+  return `${left} = ${num(e.c)}`;
+}
+// A coefficient times a value in brackets, e.g. 2(4), −(3), (5).
+const times = (c, v, first) => {
+  const mag = Math.abs(c) === 1 ? "" : String(Math.abs(c));
+  const sign = first ? (c < 0 ? "−" : "") : (c < 0 ? " − " : " + ");
+  return `${sign}${mag}(${num(v)})`;
+};
+const scale = (e, m) => ({ a: e.a * m, b: e.b * m, c: e.c * m });
+const combine = (e, f, sign) => ({ a: e.a + sign * f.a, b: e.b + sign * f.b, c: e.c + sign * f.c });
+const TAG = ["①", "②"];
+
+const LEVELS = [
+  "Same coefficient: subtract", "Same coefficient: subtract", "Opposite signs: add", "Opposite signs: add",
+  "Multiply one equation", "Multiply one equation", "Multiply both equations", "Multiply both equations",
+  "Negative numbers", "Final code: a real-life problem",
+];
+
+function makeMission(i) {
+  for (;;) {
+    let x = randInt(1, 9), y = randInt(1, 9);
+    let e1, e2;
+    const flip = Math.random() < 0.5;   // which letter lines up
+    const make = (a1, b1, a2, b2) => flip
+      ? [{ a: b1, b: a1 }, { a: b2, b: a2 }]
+      : [{ a: a1, b: b1 }, { a: a2, b: b2 }];
+    if (i < 2) {
+      const k = randInt(1, 5), p = randInt(1, 6), q = randInt(1, 6);
+      if (p === q) continue;
+      [e1, e2] = make(k, p, k, q);
+    } else if (i < 4) {
+      const k = randInt(1, 5);
+      [e1, e2] = make(k, randInt(1, 6), -k, randInt(1, 6));
+    } else if (i < 6) {
+      const p = randInt(1, 4), m = randInt(2, 4), q = randInt(1, 6), r = randInt(1, 6) * pick([1, -1]);
+      if (Math.abs(r) === m * q || Math.abs(r) === q) continue;   // must need multiplying
+      [e1, e2] = make(p, q, p * m, r);
+    } else if (i < 8) {
+      const p = randInt(2, 7), r = randInt(2, 7), q = randInt(2, 7), s = randInt(2, 7) * pick([1, -1]);
+      if (p % r === 0 || r % p === 0 || q % Math.abs(s) === 0 || Math.abs(s) % q === 0) continue;
+      [e1, e2] = make(p, q, r, s);
+    } else if (i === 8) {
+      x = randInt(-6, 9) || 2; y = randInt(-6, 9) || -3;
+      if (x > 0 && y > 0) continue;
+      const p = randInt(1, 5), r = randInt(1, 5) * pick([1, -1]), q = randInt(1, 5) * pick([1, -1]), s = randInt(1, 5);
+      [e1, e2] = make(p, q, r, s);
+    } else {
+      return wordProblem();
+    }
+    if (Math.random() < 0.5) [e1, e2] = [e2, e1];
+    e1.c = e1.a * x + e1.b * y; e2.c = e2.a * x + e2.b * y;
+    if (e1.a * e2.b - e1.b * e2.a === 0) continue;
+    if ([e1, e2].some((e) => e.a === 0 || e.b === 0)) continue;
+    // Only one letter should line up, so each code practises its intended step.
+    if (Math.abs(e1.a) === Math.abs(e2.a) && Math.abs(e1.b) === Math.abs(e2.b)) continue;
+    return { i, eqs: [e1, e2], x, y };
+  }
+}
+
+function wordProblem() {
+  for (;;) {
+    const x = randInt(4, 12), y = randInt(2, 8);
+    if (x === y) continue;
+    const [p, q, r, s] = [randInt(1, 4), randInt(1, 4), randInt(1, 4), randInt(1, 4)];
+    if (p * s - q * r === 0 || (p === r && q === s)) continue;
+    const e1 = { a: p, b: q, c: p * x + q * y }, e2 = { a: r, b: s, c: r * x + s * y };
+    const plural = (n, w) => `${n} ${w}${n > 1 ? "s" : ""}`;
+    const story = `At the cinema, ${plural(p, "adult ticket")} and ${plural(q, "child ticket")} cost £${e1.c}. ` +
+      `${plural(r, "adult ticket")} and ${plural(s, "child ticket")} cost £${e2.c}. ` +
+      `Let <strong>x</strong> = the price of an adult ticket and <strong>y</strong> = the price of a child ticket (in £).`;
+    return { i: 9, eqs: [e1, e2], x, y, story };
+  }
+}
+
+/* ---------- Game state ---------- */
+
+let missions, idx, step, tries, score, results, expert, plan;
+
+function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)); } catch { return null; } }
+function saveBest(v) { try { localStorage.setItem(BEST_KEY, JSON.stringify(v)); } catch { /* storage unavailable */ } }
+function showBest() {
+  const b = loadBest();
+  $("bestInfo").textContent = b !== null ? `Your best on this device: ${b} out of ${MISSIONS * 4} keys.` : "";
+}
+showBest();
+
+$("startBtn").addEventListener("click", startGame);
+$("againBtn").addEventListener("click", () => show("start"));
+
+function startGame() {
+  expert = $("expert").checked;
+  missions = Array.from({ length: MISSIONS }, (_, i) => makeMission(i));
+  idx = 0; score = 0; results = [];
+  show("game");
+  startMission();
+}
+
+function renderFiles() {
+  $("files").innerHTML = Array.from({ length: MISSIONS }, (_, i) => {
+    const r = results[i];
+    return `<span class="${i === idx && !r ? "now" : ""}">${r ? "✅" : "📁"}</span>`;
+  }).join("");
+  $("score").textContent = score;
+}
+
+function startMission() {
+  const m = missions[idx];
+  m.keys = 0;
+  plan = null;
+  $("missionTitle").textContent = `Code ${idx + 1} of ${MISSIONS}`;
+  $("levelName").textContent = LEVELS[idx];
+  $("story").hidden = !m.story;
+  $("story").innerHTML = m.story || "";
+  $("eqs").innerHTML = m.eqs.map((e, k) => `<div><span class="tag">${TAG[k]}</span>${eqText(e)}</div>`).join("");
+  $("work").innerHTML = "";
+  $("nextBtn").hidden = true;
+  $("form").hidden = false;
+  renderFiles();
+  goStep(expert ? "direct" : "match");
+}
+
+function addWork(label, html) {
+  const d = document.createElement("div");
+  d.className = "work-step";
+  d.innerHTML = `<div class="label">✓ ${label}</div><div class="calc">${html}</div>`;
+  $("work").appendChild(d);
+}
+
+function setFeedback(kind, html) {
+  const fb = $("feedback");
+  fb.hidden = !html;
+  fb.className = "feedback " + kind;
+  fb.innerHTML = html;
+}
+
+function goStep(name) {
+  step = name;
+  tries = 0;
+  $("msg").textContent = "";
+  setFeedback("", "");
+  const m = missions[idx];
+  const box = $("stepBox");
+  if (name === "match") {
+    box.innerHTML = `<h3>Step 1 of 4: make the x terms or the y terms match</h3>
+      <p class="muted" style="margin:0 0 8px">What will you multiply each equation by? (Use 1 to leave an equation as it is.)</p>
+      <div class="mults"><span>① × <input type="text" id="m1" value="1" aria-label="multiply equation 1 by"></span><span>② × <input type="text" id="m2" value="1" aria-label="multiply equation 2 by"></span></div>
+      <button type="submit" class="go">Check</button>`;
+  } else if (name === "op") {
+    const v = plan.elim, A = plan.E1[v === "x" ? "a" : "b"], B = plan.E2[v === "x" ? "a" : "b"];
+    box.innerHTML = `<h3>Step 2 of 4: eliminate ${v}</h3>
+      <p style="margin:0 0 10px">The ${v} terms are <strong>${term(A, v, true)}</strong> and <strong>${term(B, v, true)}</strong>. Do you add or subtract the equations?</p>
+      <div class="choice"><button type="button" class="go" data-op="add">➕ Add them</button><button type="button" class="go" data-op="sub">➖ Subtract them</button></div>`;
+    box.querySelectorAll("[data-op]").forEach((b) => b.addEventListener("click", () => chooseOp(b.dataset.op)));
+  } else if (name === "solve") {
+    box.innerHTML = `<h3>Step 3 of 4: solve for ${plan.keep}</h3>
+      <div class="vals"><span>${eqText(plan.R)}</span><span>so ${plan.keep} = <input type="text" id="v1" aria-label="${plan.keep}"></span></div>
+      <button type="submit" class="go">Check</button>`;
+  } else if (name === "back") {
+    const k = plan.keep, other = plan.elim;
+    box.innerHTML = `<h3>Step 4 of 4: find ${other}</h3>
+      <p style="margin:0 0 8px">Substitute ${k} = ${num(plan.v)} into equation ① (${eqText(m.eqs[0])}).</p>
+      <div class="vals"><span>${other} = <input type="text" id="v2" aria-label="${other}"></span></div>
+      <button type="submit" class="go">Check</button>`;
+  } else if (name === "direct") {
+    box.innerHTML = `<h3>Solve the simultaneous equations</h3>
+      <div class="vals"><span>x = <input type="text" id="dx" aria-label="x"></span><span>y = <input type="text" id="dy" aria-label="y"></span></div>
+      <button type="submit" class="go">Crack the code</button>`;
+  }
+  pad.refresh();
+  const first = box.querySelector("input");
+  if (first) { first.focus(); first.select(); }
+}
+
+/* ---------- Step 1: matching coefficients ---------- */
+
+// A sensible pair of multipliers (used to show the answer).
+function suggest(m) {
+  const [e1, e2] = m.eqs;
+  const opts = ["x", "y"].map((v) => {
+    const p = Math.abs(v === "x" ? e1.a : e1.b), q = Math.abs(v === "x" ? e2.a : e2.b), L = lcm(p, q);
+    return { v, m1: L / p, m2: L / q, size: L };
+  }).sort((a, b) => a.size - b.size);
+  return opts[0];
+}
+
+function buildPlan(m, m1, m2) {
+  const E1 = scale(m.eqs[0], m1), E2 = scale(m.eqs[1], m2);
+  const elim = Math.abs(E1.a) === Math.abs(E2.a) ? "x" : Math.abs(E1.b) === Math.abs(E2.b) ? "y" : null;
+  return elim && { m1, m2, E1, E2, elim, keep: elim === "x" ? "y" : "x" };
+}
+
+function checkMatch() {
+  const m = missions[idx];
+  const m1 = parseNumber($("m1").value), m2 = parseNumber($("m2").value);
+  if (![m1, m2].every((v) => Number.isInteger(v) && v >= 1 && v <= 20)) {
+    $("msg").textContent = "Type a whole number from 1 to 20 in each box.";
+    return;
+  }
+  tries++;
+  const p = buildPlan(m, m1, m2);
+  if (p) {
+    if (tries === 1) { score++; m.keys++; }
+    plan = p;
+    const lines = [p.E1, p.E2].map((e, k) => `${TAG[k]}${[m1, m2][k] > 1 ? ` × ${[m1, m2][k]}` : ""}: &nbsp;${eqText(e)}`);
+    addWork(`Step 1: the ${p.elim} terms match`, lines.join("<br>"));
+    return goStep("op");
+  }
+  const s = suggest(m);
+  const E1 = scale(m.eqs[0], m1), E2 = scale(m.eqs[1], m2);
+  const what = `After multiplying: ① ${eqText(E1)} and ② ${eqText(E2)}. The x terms are ${term(E1.a, "x", true)} and ${term(E2.a, "x", true)}, and the y terms are ${term(E1.b, "y", true)} and ${term(E2.b, "y", true)}, so neither pair is the same size.`;
+  if (tries === 1) {
+    setFeedback("bad", `<p><strong>❌ Not matched yet.</strong> ${what}</p><p>💡 Pick a letter. Find a number that both of its coefficients go into (the lowest common multiple), then multiply each equation to reach it.</p>`);
+    return;
+  }
+  // Second try: show a choice that works and carry on.
+  plan = buildPlan(m, s.m1, s.m2);
+  $("m1").value = s.m1; $("m2").value = s.m2;
+  const lines = [plan.E1, plan.E2].map((e, k) => `${TAG[k]}${[s.m1, s.m2][k] > 1 ? ` × ${[s.m1, s.m2][k]}` : ""}: &nbsp;${eqText(e)}`);
+  addWork(`Step 1 (shown for you): multiply ① by ${s.m1} and ② by ${s.m2} so the ${s.v} terms match`, lines.join("<br>"));
+  goStep("op");
+}
+
+/* ---------- Step 2: add or subtract ---------- */
+
+function chooseOp(op) {
+  if (step !== "op") return;
+  const m = missions[idx];
+  const v = plan.elim, key = v === "x" ? "a" : "b";
+  const same = plan.E1[key] * plan.E2[key] > 0;
+  const right = same ? "sub" : "add";
+  tries++;
+  if (op === right || tries >= 2) {
+    if (op === right && tries === 1) { score++; m.keys++; }
+    // Subtract in whichever order leaves a positive coefficient.
+    let top = plan.E1, bottom = plan.E2, tags = [TAG[0], TAG[1]];
+    let R = combine(top, bottom, right === "add" ? 1 : -1);
+    const kk = plan.keep === "x" ? "a" : "b";
+    if (right === "sub" && R[kk] < 0) { [top, bottom] = [bottom, top]; tags = [tags[1], tags[0]]; R = combine(top, bottom, -1); }
+    plan.R = R;
+    plan.v = R.c / R[kk];
+    const sym = right === "add" ? "+" : "−";
+    addWork(`Step 2: ${right === "add" ? "add" : "subtract"} the equations (${v} terms have ${same ? "the same sign" : "different signs"})${op === right ? "" : " (shown for you)"}`,
+      `&nbsp;&nbsp;${eqText(top)}<br><span class="op">${sym}</span> ${eqText(bottom)}<br><span class="line">&nbsp;&nbsp;${eqText(R)}</span>`);
+    return goStep("solve");
+  }
+  const A = term(plan.E1[key], v, true), B = term(plan.E2[key], v, true);
+  setFeedback("bad", same
+    ? `<p><strong>❌ That won't eliminate ${v}.</strong> ${A} and ${B} have the same sign, so adding gives ${term(2 * plan.E1[key], v, true)}. Subtracting gives ${A} − ${paren(plan.E2[key])}${v} = 0.</p>`
+    : `<p><strong>❌ That won't eliminate ${v}.</strong> ${A} and ${B} have different signs, so subtracting gives ${term(plan.E1[key] - plan.E2[key], v, true)}. Adding gives ${A} + ${paren(plan.E2[key])}${v} = 0.</p>`);
+}
+
+/* ---------- Steps 3 and 4: solve and substitute ---------- */
+
+function checkSolve() {
+  const m = missions[idx];
+  const val = parseNumber($("v1").value);
+  if (isNaN(val)) { $("msg").textContent = "Type a number."; return; }
+  tries++;
+  const kk = plan.keep === "x" ? "a" : "b";
+  if (Math.abs(val - plan.v) < 1e-9) {
+    if (tries === 1) { score++; m.keys++; }
+    addWork(`Step 3: solve`, `${eqText(plan.R)} → ${plan.keep} = ${num(plan.R.c)} ÷ ${paren(plan.R[kk])} = <strong>${num(plan.v)}</strong>`);
+    return goStep("back");
+  }
+  if (tries === 1) {
+    setFeedback("bad", `<p><strong>❌ Not quite.</strong> Divide both sides of ${eqText(plan.R)} by ${num(plan.R[kk])}. Watch the signs!</p>`);
+    $("v1").select();
+    return;
+  }
+  addWork(`Step 3 (shown for you): solve`, `${eqText(plan.R)} → ${plan.keep} = ${num(plan.R.c)} ÷ ${paren(plan.R[kk])} = <strong>${num(plan.v)}</strong>`);
+  goStep("back");
+}
+
+function substitution(m) {
+  const e = m.eqs[0], k = plan.keep, other = plan.elim;
+  const kc = k === "x" ? e.a : e.b, oc = other === "x" ? e.a : e.b;
+  const known = kc * plan.v;
+  const ans = other === "x" ? m.x : m.y;
+  const withVal = k === "x"
+    ? `${times(e.a, plan.v, true)}${term(e.b, "y", false)}`
+    : `${term(e.a, "x", true)}${times(e.b, plan.v, false)}`;
+  return [
+    `① with ${k} = ${num(plan.v)}: ${withVal} = ${num(e.c)}`,
+    `${term(oc, other, true)} ${known < 0 ? "−" : "+"} ${Math.abs(known)} = ${num(e.c)}`,
+    `${term(oc, other, true)} = ${num(e.c)} ${known < 0 ? "+" : "−"} ${Math.abs(known)} = ${num(e.c - known)}`,
+    `${other} = ${num(e.c - known)} ÷ ${paren(oc)} = <strong>${num(ans)}</strong>`,
+  ];
+}
+
+function checkBack() {
+  const m = missions[idx];
+  const val = parseNumber($("v2").value);
+  if (isNaN(val)) { $("msg").textContent = "Type a number."; return; }
+  tries++;
+  const ans = plan.elim === "x" ? m.x : m.y;
+  if (Math.abs(val - ans) < 1e-9) {
+    if (tries === 1) { score++; m.keys++; }
+    addWork(`Step 4: substitute back`, substitution(m).join("<br>"));
+    return cracked();
+  }
+  if (tries === 1) {
+    setFeedback("bad", `<p><strong>❌ Not quite.</strong> Put ${plan.keep} = ${num(plan.v)} into ① and solve for ${plan.elim}:</p><p class="calc">${substitution(m).slice(0, 1).join("")}</p>`);
+    $("v2").select();
+    return;
+  }
+  addWork(`Step 4 (shown for you): substitute back`, substitution(m).join("<br>"));
+  cracked();
+}
+
+/* ---------- Expert mode ---------- */
+
+function checkDirect() {
+  const m = missions[idx];
+  const x = parseNumber($("dx").value), y = parseNumber($("dy").value);
+  if (isNaN(x) || isNaN(y)) { $("msg").textContent = "Type a number for both x and y."; return; }
+  tries++;
+  const ok = Math.abs(x - m.x) < 1e-9 && Math.abs(y - m.y) < 1e-9;
+  if (ok) {
+    const got = tries === 1 ? 4 : 2;
+    score += got; m.keys += got;
+    return cracked();
+  }
+  const fits = m.eqs.map((e) => Math.abs(e.a * x + e.b * y - e.c) < 1e-9);
+  const why = fits[0] && !fits[1] ? "Those values work in ① but not in ②." : fits[1] && !fits[0] ? "Those values work in ② but not in ①." : "Those values don't work in either equation.";
+  if (tries === 1) {
+    setFeedback("bad", `<p><strong>❌ Code rejected.</strong> ${why} Check by substituting your values into both equations.</p>`);
+    return;
+  }
+  const s = suggest(m);
+  plan = buildPlan(m, s.m1, s.m2);
+  const key = plan.elim === "x" ? "a" : "b";
+  const sign = plan.E1[key] * plan.E2[key] > 0 ? -1 : 1;
+  let R = combine(plan.E1, plan.E2, sign);
+  const kk = plan.keep === "x" ? "a" : "b";
+  if (R[kk] < 0) R = scale(R, -1);
+  plan.R = R; plan.v = R.c / R[kk];
+  addWork("The working (shown for you)", [
+    s.m1 === 1 && s.m2 === 1
+      ? `The ${plan.elim} terms already match: ${eqText(plan.E1)} and ${eqText(plan.E2)}`
+      : `Multiply ① by ${s.m1} and ② by ${s.m2}: ${eqText(plan.E1)} and ${eqText(plan.E2)}`,
+    `${sign < 0 ? "Subtract" : "Add"} to eliminate ${plan.elim}: ${eqText(R)}${R[kk] === 1 ? "" : `, so ${plan.keep} = ${num(plan.v)}`}`,
+    ...substitution(m),
+  ].join("<br>"));
+  cracked();
+}
+
+/* ---------- Finishing a code ---------- */
+
+function cracked() {
+  const m = missions[idx];
+  const e2 = m.eqs[1];
+  addWork(`Check in ②`, `${times(e2.a, m.x, true)}${times(e2.b, m.y, false)} = ${num(e2.a * m.x + e2.b * m.y)} ✓ (② says ${num(e2.c)})`);
+  results[idx] = { m };
+  $("form").hidden = true;
+  $("work").insertAdjacentHTML("beforeend", `<div class="feedback good"><p><strong>🔓 Code cracked: x = ${num(m.x)}, y = ${num(m.y)}${m.story ? ` (an adult ticket costs £${m.x} and a child ticket costs £${m.y})` : ""}. ${m.keys ? "+" + "🗝️".repeat(m.keys) : ""}</strong></p></div>`);
+  $("nextBtn").textContent = idx + 1 < MISSIONS ? "Next code →" : "Report to HQ 🕵️";
+  $("nextBtn").hidden = false;
+  renderFiles();
+  $("nextBtn").focus();
+}
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (step === "match") checkMatch();
+  else if (step === "solve") checkSolve();
+  else if (step === "back") checkBack();
+  else if (step === "direct") checkDirect();
+});
+
+$("nextBtn").addEventListener("click", () => {
+  idx++;
+  if (idx < MISSIONS) startMission();
+  else gameOver();
+});
+
+function gameOver() {
+  const best = loadBest();
+  const isBest = best === null || score > best;
+  if (isBest) saveBest(score);
+  $("overStats").textContent = `🗝️ ${score} / ${MISSIONS * 4} keys${expert ? " (expert)" : ""}`;
+  $("overText").textContent = (isBest ? "🏅 New best on this device! " : `Your best is ${best}. `) +
+    (score === MISSIONS * 4 ? "Agent of the year: every step right first time!" : expert ? "New codes await." : "Confident? Try expert mode next time.");
+  $("resultRows").innerHTML = "";
+  results.forEach(({ m }, i) => {
+    const tr = document.createElement("tr");
+    for (const v of [i + 1, `${eqText(m.eqs[0])};  ${eqText(m.eqs[1])}`, `x = ${num(m.x)}, y = ${num(m.y)}`, "🗝️".repeat(m.keys) || "–"]) {
+      const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+    }
+    $("resultRows").appendChild(tr);
+  });
+  showBest();
+  show("over");
+}
+</script>
+</body>
+</html>

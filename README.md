@@ -18,6 +18,7 @@ The home page groups the games by topic. Students can tap topics on or off to bu
 | Expressions | [Bracket Factory](bracket-factory/) | Expanding single brackets, and expanding and simplifying | 1 |
 | Expressions | [Grid Lock](grid-lock/) | Expanding double brackets with the grid method | 1 |
 | Equations | [Equation Escape Room](equation-escape/) | Solving linear equations | 1 |
+| Equations | [Elimination Agent](elimination-agent/) | Solving simultaneous equations algebraically (elimination) | 1 |
 | Sequences | [Nth Term Vault](nth-term-vault/) | Finding and using the nth term of linear sequences | 1 |
 | Sequences | [Matchstick Patterns](matchstick-patterns/) | Linear sequences from patterns, and why the rule works | 1 |
 | Sequences | [Sequence Sniper](sequence-sniper/) | Deciding whether a number is a term of a sequence | 1 |
@@ -89,6 +90,10 @@ Twelve orders on a factory conveyor belt, each a single bracket to expand. They 
 ### Grid Lock
 
 Twelve locks, each a pair of brackets to expand with the grid method. Step 1: fill a 2 × 2 grid, with each box checked separately and a hint like `x × (−9) = ?` for wrong boxes. Step 2: add the boxes and collect like terms. It progresses from `(x + a)(x + b)` through minus signs, squaring a bracket, the difference of two squares, and numbers in front of x, to a final lock with no grid. Feedback catches the classic `(x + 5)² = x² + 25` mistake, sign errors and wrongly collected x terms. Expert mode removes the grid entirely.
+
+### Elimination Agent
+
+Ten pairs of "intercepted clues", each a pair of simultaneous equations hiding x and y. Students work through the elimination method in four checked steps: choose what to multiply each equation by so the x or y terms match (any valid choice is accepted), decide whether to add or subtract (same signs: subtract; different signs: add), solve for one letter, then substitute back for the other. The game then checks the answer in the other equation. The completed working builds up on screen like a textbook. Codes progress from matching coefficients, to opposite signs, multiplying one equation, multiplying both, and negative answers, to a cinema-ticket word problem. Wrong answers get explained (e.g. "4x and 4x have the same sign, so adding gives 8x"), and a second wrong answer shows that step. Expert mode asks for x and y directly.
 
 ## Sharing the games (GitHub Pages)
 

@@ -142,13 +142,19 @@
 
   <section class="topic" id="equations">
     <h2>⚖️ Equations</h2>
-    <p>Solving linear equations.</p>
+    <p>Solving linear equations and simultaneous equations.</p>
     <div class="games">
       <a class="card" href="equation-escape/">
         <div class="icon">🚪</div>
         <h3>Equation Escape Room</h3>
         <p>Solve an equation to unlock each door. Ten rooms, from one-step equations to brackets on both sides. Beat the clock!</p>
         <div class="tags">Solving linear equations · 1 player</div>
+      </a>
+          <a class="card" href="elimination-agent/">
+        <div class="icon">🕵️</div>
+        <h3>Elimination Agent</h3>
+        <p>Crack ten secret codes by solving simultaneous equations algebraically with the elimination method, one step at a time.</p>
+        <div class="tags">Simultaneous equations (elimination) · 1 player</div>
       </a>
     </div>
   </section>
@@ -294,6 +300,7 @@ const BESTS = {
   "nth-term-vault/": () => { const b = read("nthTermVaultBest"); return b !== null && `${b} / 20 🔑`; },
   "matchstick-patterns/": () => { const b = read("matchstickPatternsBest"); return b !== null && `${b} / 16 ⭐`; },
   "sequence-sniper/": () => { const b = read("sequenceSniperBest"); return b !== null && `${b} points`; },
+  "elimination-agent/": () => { const b = read("eliminationAgentBest"); return b !== null && `${b} / 40 🗝️`; },
   "bracket-factory/": () => { const b = read("bracketFactoryBest"); return b !== null && `${b} / 24 📦`; },
   "grid-lock/": () => { const b = read("gridLockBest"); return b !== null && `${b} / 24 🔑`; },
   "parallel-parking/": () => { const b = read("parallelParkingBest"); return b !== null && `${b} / 30 ⭐`; },
