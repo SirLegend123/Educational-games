@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sophie's GCSE Revision</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: one calm app column, the same top bar on every screen, chunky game buttons, one big card per question. */
+:root{
+  --font:'Lexend', 'Verdana', 'Trebuchet MS', system-ui, sans-serif;
+  --bg:#FBF6E4; --surface:#FFFFFF; --surface-2:#F3EEDB; --ink:#16213A; --ink-soft:#4E5873; --line:#DED6BC;
+  --sun:#F4BE1E; --sun-deep:#C99700; --sun-ink:#231A00;
+  --teal:#1B7F79; --teal-deep:#11605B; --teal-soft:#DDF0EE;
+  --good:#2C9659; --good-deep:#1F7343; --good-soft:#DFF3E6;
+  --warm:#D9822B; --warm-deep:#A9621C; --warm-soft:#FBE8D3;
+  --berry:#8A4FB0; --berry-soft:#EFE4F6;
+  --shadow:rgba(22,33,58,.10);
+  --on-accent:#FFFFFF;
+  --fs:19px; --ls:0; --ws:0;
+}
+:root[data-tint="sky"]{--bg:#E7F1F8}
+:root[data-tint="mint"]{--bg:#E8F4EC}
+:root[data-tint="rose"]{--bg:#F8EAEC}
+:root[data-tint="white"]{--bg:#FFFFFF}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121722; --surface:#1A2130; --surface-2:#222B3C; --ink:#F2EFE3; --ink-soft:#B8B6AA; --line:#323D51;
+    --sun:#F5C432; --sun-deep:#B88E0A; --sun-ink:#1E1600;
+    --teal:#4CC2B8; --teal-deep:#2E8E86; --teal-soft:#173836;
+    --good:#5DD08C; --good-deep:#3A9A62; --good-soft:#173526;
+    --warm:#F0A35E; --warm-deep:#B87535; --warm-soft:#3A2818;
+    --berry:#C59BE3; --berry-soft:#2E2238;
+    --shadow:rgba(0,0,0,.35); --on-accent:#0E1A14; color-scheme:dark;
+  }
+  :root:not([data-theme="light"])[data-tint="cream"]{--bg:#17150F}
+  :root:not([data-theme="light"])[data-tint="sky"]{--bg:#0F1821}
+  :root:not([data-theme="light"])[data-tint="mint"]{--bg:#0F1A15}
+  :root:not([data-theme="light"])[data-tint="rose"]{--bg:#1C1316}
+  :root:not([data-theme="light"])[data-tint="white"]{--bg:#121722}
+}
+:root[data-theme="dark"]{
+  --bg:#121722; --surface:#1A2130; --surface-2:#222B3C; --ink:#F2EFE3; --ink-soft:#B8B6AA; --line:#323D51;
+  --sun:#F5C432; --sun-deep:#B88E0A; --sun-ink:#1E1600;
+  --teal:#4CC2B8; --teal-deep:#2E8E86; --teal-soft:#173836;
+  --good:#5DD08C; --good-deep:#3A9A62; --good-soft:#173526;
+  --warm:#F0A35E; --warm-deep:#B87535; --warm-soft:#3A2818;
+  --berry:#C59BE3; --berry-soft:#2E2238;
+  --shadow:rgba(0,0,0,.35); --on-accent:#0E1A14; color-scheme:dark;
+}
+:root[data-theme="dark"][data-tint="cream"]{--bg:#17150F}
+:root[data-theme="dark"][data-tint="sky"]{--bg:#0F1821}
+:root[data-theme="dark"][data-tint="mint"]{--bg:#0F1A15}
+:root[data-theme="dark"][data-tint="rose"]{--bg:#1C1316}
+:root[data-size="m"]{--fs:17px}
+:root[data-size="xl"]{--fs:22px}
+:root[data-spacing="wide"]{--ls:.05em; --ws:.14em}
+
+*{box-sizing:border-box}
+body{margin:0}
+html,body{min-height:100%}
+body{font-family:var(--font); font-size:var(--fs); letter-spacing:var(--ls); word-spacing:var(--ws); line-height:1.6; background:var(--bg); color:var(--ink); transition:background .2s}
+button,input,select,textarea{font:inherit; letter-spacing:inherit; word-spacing:inherit; color:inherit}
+:focus-visible{outline:3px solid var(--teal); outline-offset:3px; border-radius:10px}
+.app{max-width:880px; margin:0 auto; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:12px 48px; display:flex; flex-direction:column; gap:20px}
+h1,h2,h3{margin:0; line-height:1.25; text-wrap:balance; font-weight:800}
+h1{font-size:1.75em} h2{font-size:1.3em} h3{font-size:1.05em}
+p{margin:0}
+.muted{color:var(--ink-soft)}
+.small{font-size:.85em}
+
+/* top bar */
+.bar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding-block:6px}
+.brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.05em; margin-right:auto; background:none; border:0; padding:4px; cursor:pointer}
+.brand .logo{width:38px; height:38px; border-radius:12px; background:var(--sun); color:var(--sun-ink); display:grid; place-items:center; box-shadow:0 3px 0 var(--sun-deep)}
+.chip{display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; background:var(--surface); border:2px solid var(--line); font-weight:700; font-size:.85em; white-space:nowrap}
+.chip svg{flex:none}
+.iconbtn{width:44px; height:44px; border-radius:14px; border:2px solid var(--line); background:var(--surface); display:grid; place-items:center; cursor:pointer}
+.iconbtn:hover{border-color:var(--teal)}
+
+/* buttons */
+a.btn{text-decoration:none}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:56px; padding:12px 22px; border-radius:18px; border:0; font-weight:700; font-size:1em; cursor:pointer; background:var(--sun); color:var(--sun-ink); box-shadow:0 5px 0 var(--sun-deep); transition:transform .08s, box-shadow .08s; text-align:center}
+.btn:active{transform:translateY(4px); box-shadow:0 1px 0 var(--sun-deep)}
+.btn:disabled{opacity:.5; cursor:not-allowed}
+.btn.teal{background:var(--teal); color:var(--on-accent); box-shadow:0 5px 0 var(--teal-deep)}
+.btn.teal:active{box-shadow:0 1px 0 var(--teal-deep)}
+.btn.good{background:var(--good); color:var(--on-accent); box-shadow:0 5px 0 var(--good-deep)}
+.btn.good:active{box-shadow:0 1px 0 var(--good-deep)}
+.btn.warm{background:var(--warm); color:#1E1000; box-shadow:0 5px 0 var(--warm-deep)}
+.btn.warm:active{box-shadow:0 1px 0 var(--warm-deep)}
+.btn.ghost{background:var(--surface); color:var(--ink); box-shadow:0 4px 0 var(--line); border:2px solid var(--line)}
+.btn.ghost:active{box-shadow:0 1px 0 var(--line)}
+.btn.wide{width:100%}
+.btn.sm{min-height:44px; padding:8px 14px; font-size:.9em; border-radius:14px}
+.row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+.row > *{min-width:0}
+
+.panel{background:var(--surface); border:2px solid var(--line); border-radius:24px; padding:22px; display:flex; flex-direction:column; gap:14px; box-shadow:0 6px 0 var(--shadow)}
+
+/* home mission */
+.mission{display:grid; grid-template-columns:auto 1fr; gap:22px; align-items:center; background:var(--surface); border:3px solid var(--sun); border-radius:28px; padding:22px; box-shadow:0 7px 0 var(--sun-deep)}
+.mission .txt{display:flex; flex-direction:column; gap:10px; min-width:0}
+.eyebrow{font-size:.75em; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--teal)}
+@media (max-width:560px){.mission{grid-template-columns:1fr; justify-items:start}}
+.ring{position:relative; width:120px; height:120px; flex:none}
+.ring svg{width:100%; height:100%; transform:rotate(-90deg)}
+.ring .num{position:absolute; inset:0; display:grid; place-items:center; text-align:center; font-weight:800; line-height:1.1}
+.ring .num b{font-size:1.9em; display:block}
+.ring .num span{font-size:.7em; color:var(--ink-soft); font-weight:500}
+.ring.sm{width:72px; height:72px}
+.ring.sm .num b{font-size:1.1em}
+
+.calm{display:flex; gap:14px; align-items:flex-start; background:var(--teal-soft); border-radius:20px; padding:16px 18px}
+.calm svg{flex:none; color:var(--teal); margin-top:3px}
+
+.stats{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px}
+.stat{background:var(--surface); border:2px solid var(--line); border-radius:20px; padding:14px; display:flex; flex-direction:column; gap:6px}
+.stat .big{font-size:1.5em; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.1}
+.stat .lbl{font-size:.78em; color:var(--ink-soft)}
+.xpbar{height:12px; border-radius:99px; background:var(--surface-2); overflow:hidden}
+.xpbar i{display:block; height:100%; background:var(--sun); border-radius:99px}
+@media (max-width:480px){.stats{grid-template-columns:1fr 1fr} .stats .stat:last-child{grid-column:1 / -1}}
+
+.grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap:14px}
+.deck{background:var(--surface); border:2px solid var(--line); border-radius:22px; padding:16px; display:flex; gap:14px; align-items:center; cursor:pointer; text-align:left; box-shadow:0 5px 0 var(--shadow); transition:transform .1s}
+.deck:hover{transform:translateY(-2px); border-color:var(--teal)}
+.deck .info{display:flex; flex-direction:column; gap:4px; min-width:0}
+.deck .info b{font-size:1.02em; line-height:1.3}
+.subj{display:inline-flex; align-self:flex-start; padding:2px 10px; border-radius:999px; font-size:.72em; font-weight:700; background:var(--teal-soft); color:var(--teal)}
+.subj.English{background:var(--warm-soft); color:var(--warm-deep)}
+.subj.Science{background:var(--good-soft); color:var(--good-deep)}
+.subj.History,.subj.Geography,.subj.Other{background:var(--berry-soft); color:var(--berry)}
+:root[data-theme="dark"] .subj.English{color:var(--warm)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .subj.English{color:var(--warm)} :root:not([data-theme="light"]) .subj.Science{color:var(--good)}}
+:root[data-theme="dark"] .subj.Science{color:var(--good)}
+.adddeck{border-style:dashed; justify-content:center; color:var(--teal); font-weight:700; min-height:104px; background:transparent; box-shadow:none}
+
+/* games on a topic */
+.games{display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap:14px}
+.game{border-radius:22px; padding:18px; border:0; cursor:pointer; text-align:left; display:flex; flex-direction:column; gap:8px; color:var(--ink); transition:transform .1s}
+.game:hover{transform:translateY(-3px)}
+.game:disabled{opacity:.45; cursor:not-allowed; transform:none}
+.game .gi{width:52px; height:52px; border-radius:16px; display:grid; place-items:center; background:var(--surface)}
+.game b{font-size:1.05em}
+.game span{font-size:.82em; color:var(--ink-soft)}
+.g1{background:var(--sun); box-shadow:0 6px 0 var(--sun-deep)} .g1 span{color:var(--sun-ink)} .g1{color:var(--sun-ink)}
+.g2{background:var(--teal-soft); box-shadow:0 6px 0 var(--teal)}
+.g3{background:var(--good-soft); box-shadow:0 6px 0 var(--good)}
+.g4{background:var(--berry-soft); box-shadow:0 6px 0 var(--berry)}
+
+.sheet{display:flex; flex-direction:column; gap:12px}
+.sheetcard{background:var(--surface); border:2px solid var(--line); border-radius:18px; padding:14px 16px; display:flex; flex-direction:column; gap:8px}
+.sheetcard .qa{display:flex; gap:10px; align-items:flex-start; justify-content:space-between}
+.sheetcard .qa > div{min-width:0}
+.ans{font-weight:700; color:var(--teal)}
+.kw{display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,2fr); gap:0; border:2px solid var(--line); border-radius:18px; overflow:hidden; background:var(--surface)}
+.kw div{padding:10px 14px; border-top:2px solid var(--line)}
+.kw div:nth-child(-n+2){border-top:0}
+.kw .t{font-weight:700; background:var(--berry-soft); color:var(--ink)}
+details{border-radius:18px}
+summary{cursor:pointer; font-weight:700; padding:6px 0}
+
+/* visual aids */
+.vtable{overflow-x:auto}
+.vtable table{border-collapse:collapse; font-variant-numeric:tabular-nums}
+.vtable th,.vtable td{border:2px solid var(--ink); padding:8px 16px; text-align:center; min-width:70px; font-weight:700}
+.vtable th{background:var(--berry-soft)}
+.vtable td{background:var(--surface)}
+.vsteps{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; counter-reset:s}
+.vsteps li{display:flex; gap:12px; align-items:flex-start; counter-increment:s}
+.vsteps li::before{content:counter(s); flex:none; width:32px; height:32px; border-radius:50%; background:var(--teal); color:var(--on-accent); font-weight:800; display:grid; place-items:center; font-size:.85em; margin-top:1px}
+.hook{display:flex; gap:12px; align-items:flex-start; background:var(--sun); color:var(--sun-ink); border-radius:16px; padding:12px 14px; font-weight:600}
+.hook svg{flex:none; margin-top:2px}
+
+/* play */
+.playtop{display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+.dots{display:flex; gap:6px; flex-wrap:wrap; flex:1; min-width:0}
+.dots i{width:16px; height:16px; border-radius:50%; background:var(--surface-2); border:2px solid var(--line)}
+.dots i.done{background:var(--good); border-color:var(--good)}
+.dots i.miss{background:var(--warm); border-color:var(--warm)}
+.dots i.now{border-color:var(--ink); background:var(--sun)}
+.big-card{background:var(--surface); border:3px solid var(--ink); border-radius:28px; padding:26px; display:flex; flex-direction:column; gap:18px; box-shadow:0 8px 0 var(--ink); min-height:260px}
+.qtext{font-size:1.35em; font-weight:700; line-height:1.4}
+.qhead{display:flex; gap:12px; align-items:flex-start; justify-content:space-between}
+.qhead > div{min-width:0}
+.flip-ans{font-size:1.6em; font-weight:800; color:var(--teal)}
+.choices{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+@media (max-width:560px){.choices{grid-template-columns:1fr}}
+.choice{min-height:64px; border-radius:18px; border:3px solid var(--line); background:var(--surface); padding:12px 16px; text-align:left; font-weight:600; cursor:pointer; box-shadow:0 4px 0 var(--line); display:flex; gap:12px; align-items:center}
+.choice .k{flex:none; width:32px; height:32px; border-radius:10px; background:var(--surface-2); display:grid; place-items:center; font-weight:800; font-size:.85em}
+.choice:hover:not(:disabled){border-color:var(--teal)}
+.choice:disabled{cursor:default}
+.choice.right{border-color:var(--good); background:var(--good-soft); box-shadow:0 4px 0 var(--good)}
+.choice.wrong{border-color:var(--warm); background:var(--warm-soft); box-shadow:0 4px 0 var(--warm)}
+.feedback{border-radius:20px; padding:16px 18px; display:flex; flex-direction:column; gap:12px}
+.feedback.ok{background:var(--good-soft)}
+.feedback.notyet{background:var(--warm-soft)}
+.feedback .head{font-weight:800; font-size:1.1em}
+.explain{background:var(--teal-soft); border-radius:16px; padding:14px 16px; white-space:pre-wrap}
+.hintbox{background:var(--surface-2); border-radius:16px; padding:12px 16px}
+
+.match{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.match .col{display:flex; flex-direction:column; gap:10px; min-width:0}
+.tile{min-height:60px; border-radius:16px; border:3px solid var(--line); background:var(--surface); padding:10px 14px; cursor:pointer; font-weight:600; text-align:left; box-shadow:0 4px 0 var(--line); transition:opacity .3s, transform .1s}
+.tile.term{font-weight:800; background:var(--berry-soft); border-color:var(--berry-soft)}
+.tile.sel{border-color:var(--teal); box-shadow:0 4px 0 var(--teal); transform:translateY(-2px)}
+.tile.ok{border-color:var(--good); background:var(--good-soft); box-shadow:none; opacity:.55; cursor:default}
+@media (max-width:520px){.match{grid-template-columns:1fr}}
+
+.built{display:flex; flex-direction:column; gap:8px; min-height:60px; border:3px dashed var(--line); border-radius:18px; padding:12px}
+.built .stepok{display:flex; gap:12px; align-items:center; background:var(--good-soft); border-radius:12px; padding:8px 12px; font-weight:600}
+.built .stepok b{flex:none; width:30px; height:30px; border-radius:50%; background:var(--good); color:var(--on-accent); display:grid; place-items:center; font-size:.85em}
+.pool{display:flex; flex-direction:column; gap:10px}
+.tile.glow{border-color:var(--sun); box-shadow:0 4px 0 var(--sun-deep)}
+
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.shake{animation:shake .3s}
+@keyframes pop{0%{transform:scale(.6); opacity:0}100%{transform:scale(1); opacity:1}}
+
+.done{align-items:center; text-align:center}
+.stars{display:flex; gap:10px; justify-content:center}
+.stars svg{animation:pop .4s both}
+.stars svg:nth-child(2){animation-delay:.15s} .stars svg:nth-child(3){animation-delay:.3s}
+
+/* forms */
+label.f{display:flex; flex-direction:column; gap:6px; font-weight:700}
+input[type=text],select,textarea{border:2px solid var(--line); border-radius:14px; padding:12px 14px; background:var(--surface); font-weight:400; width:100%}
+textarea{min-height:160px; resize:vertical; line-height:1.5}
+.drop{border:3px dashed var(--teal); border-radius:20px; padding:20px; display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; background:var(--teal-soft); cursor:pointer}
+.drop.over{background:var(--surface)}
+.thumbs{display:flex; gap:10px; flex-wrap:wrap}
+.thumb{position:relative; width:84px; height:84px; border-radius:12px; overflow:hidden; border:2px solid var(--line); background:var(--surface-2); display:grid; place-items:center; font-size:.7em; text-align:center; padding:4px}
+.thumb img{width:100%; height:100%; object-fit:cover; position:absolute; inset:0}
+.thumb button{position:absolute; top:2px; right:2px; width:26px; height:26px; border-radius:50%; border:0; background:var(--ink); color:var(--bg); cursor:pointer; font-weight:800; line-height:1}
+.seg{display:flex; gap:8px; flex-wrap:wrap}
+.seg button{min-height:48px; padding:8px 16px; border-radius:14px; border:3px solid var(--line); background:var(--surface); cursor:pointer; font-weight:700}
+.seg button[aria-pressed="true"]{border-color:var(--teal); background:var(--teal-soft)}
+.swatch{width:20px; height:20px; border-radius:50%; display:inline-block; border:2px solid var(--line); vertical-align:middle; margin-right:6px}
+.status{display:flex; gap:12px; align-items:center; background:var(--surface-2); border-radius:16px; padding:14px 16px}
+.spinner{width:26px; height:26px; border-radius:50%; border:4px solid var(--line); border-top-color:var(--teal); animation:spin 1s linear infinite; flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:12px 20px; border-radius:16px; font-weight:600; z-index:50; max-width:calc(100% - 32px); text-align:center}
+.confetti{position:fixed; inset:0; pointer-events:none; z-index:40; width:100%; height:100%}
+.back{display:inline-flex; align-items:center; gap:8px; background:none; border:0; cursor:pointer; font-weight:700; color:var(--teal); padding:6px 0}
+.danger{color:var(--warm-deep)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div id="toastRoot"></div>
+
+<script>
+/* ---------- built-in topic: matches the six-lesson Ratio and Proportion unit ---------- */
+const BUILTIN = {
+  id: "ratio-builtin", builtin: true, subject: "Maths", title: "Ratio and Proportion",
+  cards: [
+    {id:"r1", q:"Share £35 in the ratio 2 : 5.", a:"£10 and £25", hint:"Add the parts: 2 + 5 = 7. Then 35 ÷ 7.", hook:"Add the parts, divide, then times. Add. Divide. Times.", choices:["£10 and £25","£14 and £21","£5 and £30","£7 and £28"], visual:{kind:"table", headers:["A","B","Total"], rows:[["2","5","7"],["10","25","35"]]}},
+    {id:"r2", q:"Jerry and Mick share money in the ratio 2 : 3. Mick gets £900. How much does Jerry get?", a:"£600", hint:"Mick's 3 parts are £900. What is one part?", hook:"Put the number you KNOW in the RIGHT column.", choices:["£600","£1350","£360","£1500"], visual:{kind:"table", headers:["Jerry","Mick","Total"], rows:[["2","3","5"],["600","900","1500"]]}},
+    {id:"r3", q:"Red : blue = 5 : 2. There are 21 more red than blue. How many red are there?", a:"35 red", hint:"The difference in the ratio is 5 − 2 = 3.", hook:"'More than' means use the Difference column.", choices:["35 red","15 red","21 red","105 red"], visual:{kind:"table", headers:["Red","Blue","Difference"], rows:[["5","2","3"],["35","14","21"]]}},
+    {id:"r4", q:"Simplify 24 : 36", a:"2 : 3", hint:"Divide both sides by 12.", hook:"Simplify means divide BOTH sides by the same number.", choices:["2 : 3","4 : 6","3 : 2","6 : 9"], visual:null},
+    {id:"r5", q:"Write 12 : 30 in the form 1 : n", a:"1 : 2.5", hint:"The 1 is on the LEFT. Divide both sides by 12.", hook:"1 : n has the 1 on the LEFT. Divide by the LEFT number.", choices:["1 : 2.5","1 : 18","2 : 5","1 : 0.4"], visual:null},
+    {id:"r6", q:"Write 18 : 4 in the form n : 1", a:"4.5 : 1", hint:"The 1 is on the RIGHT. Divide both sides by 4.", hook:"n : 1 has the 1 on the RIGHT. Divide by the RIGHT number.", choices:["4.5 : 1","9 : 2","1 : 4.5","4 : 1"], visual:null},
+    {id:"r7", q:"Red : blue = 3 : 4. What fraction are red?", a:"3/7", hint:"The bottom of the fraction is all the parts added.", hook:"Fraction bottom = add up every part.", choices:["3/7","3/4","4/7","1/3"], visual:null},
+    {id:"r8", q:"4 kg of apples cost £6. Work out the cost of 7 kg.", a:"£10.50", hint:"Find the cost of 1 kg first.", hook:"Find ONE, then times by how many you need.", choices:["£10.50","£42","£24","£9"], visual:{kind:"steps", steps:["Divide: £6 ÷ 4 = £1.50 for 1 kg","Multiply: 7 × £1.50 = £10.50"]}},
+    {id:"r9", q:"12 biscuits use 180 g of flour. How much flour for 20 biscuits?", a:"300 g", hint:"12 → 4 biscuits is ÷ 3. Then 4 → 20 is × 5.", hook:"Do the SAME to every ingredient.", choices:["300 g","200 g","240 g","360 g"], visual:{kind:"table", headers:["Biscuits","Flour (g)"], rows:[["12","180"],["4","60"],["20","300"]]}},
+    {id:"r10", q:"250 g of pasta feeds 4 people. Kai has 600 g. Is that enough for 10 people?", a:"No. 10 people need 625 g.", hint:"Find how much 1 person needs.", hook:"Is there enough? Work out NEEDED, then compare with HAS.", choices:["No. 10 people need 625 g.","Yes. 10 people need 500 g.","Yes. 600 g is more than 250 g.","No. 10 people need 1000 g."], visual:{kind:"steps", steps:["1 person: 250 ÷ 4 = 62.5 g","10 people: 62.5 × 10 = 625 g","625 g is more than 600 g, so no"]}},
+    {id:"r11", q:"10 rulers cost £3. Pen : ruler cost = 4 : 3. Work out the cost of 5 pens.", a:"£2.00", hint:"Find the cost of one ruler in pence first.", hook:"Work in pence. No decimals to trip you up.", choices:["£2.00","£1.50","£4.00","£2.50"], visual:{kind:"steps", steps:["One ruler: 300p ÷ 10 = 30p","30 ÷ 3 = 10, so one pen = 4 × 10 = 40p","5 pens: 5 × 40p = 200p = £2.00"]}},
+    {id:"r12", q:"Batteries: 4 for £2.80 or 10 for £6.50. Which is better value?", a:"10 for £6.50 (65p each)", hint:"Find the price of ONE battery in each pack.", hook:"Best buy: make the amounts the SAME, then compare.", choices:["10 for £6.50 (65p each)","4 for £2.80 (70p each)","They cost the same","4 for £2.80 (65p each)"], visual:{kind:"table", headers:["Pack","Price","Price for 1"], rows:[["4","£2.80","70p"],["10","£6.50","65p"]]}},
+    {id:"r13", q:"£1 = €1.15. Change £200 into euros.", a:"€230", hint:"Pounds to euros: multiply.", hook:"Pounds to euros, times. Euros to pounds, divide.", choices:["€230","€173.91","€215","€115"], visual:null},
+    {id:"r14", q:"A coat costs £80. It is reduced by 15%. Work out the sale price.", a:"£68", hint:"Find 10% and 5%, then add them.", hook:"Discount: find it, then TAKE IT AWAY.", choices:["£68","£12","£92","£65"], visual:{kind:"steps", steps:["10% = £8","5% = £4","15% = £12","£80 − £12 = £68"]}},
+    {id:"r15", q:"£4500 is invested for 3 years at 1.8% simple interest. Work out the total interest.", a:"£243", hint:"1 year: 1.8 ÷ 100 × 4500. Then times 3.", hook:"Interest means JUST the extra money. Read the last line.", choices:["£243","£4743","£81","£4257"], visual:{kind:"steps", steps:["1 year: 1.8 ÷ 100 × 4500 = £81","3 years: £81 × 3 = £243","Stop: the question asks for interest only"]}}
+  ],
+  keywords: [
+    {term:"Ratio", meaning:"How much of one thing compared to another."},
+    {term:"Part", meaning:"One share of the ratio."},
+    {term:"Total", meaning:"All the parts added together."},
+    {term:"Difference", meaning:"How many more one share is. Take away."},
+    {term:"Multiplier", meaning:"The number you multiply every column by."},
+    {term:"Unitary method", meaning:"Find the value of ONE first."},
+    {term:"Exchange rate", meaning:"How much of one currency you get for 1."},
+    {term:"Simple interest", meaning:"The same extra money every year."}
+  ],
+  methods: [
+    {name:"Ratio table", steps:["Draw a column for each person","Write the ratio in the top row","Put the number you know in the right column","Multiplier = number you know ÷ ratio number above","Multiply every column by the multiplier"]},
+    {name:"Unitary method", steps:["Divide to find the value of ONE","Label it, like 1 kg = £1.50","Multiply by how many you need","Write the answer with units"]},
+    {name:"Cost ratio problem", steps:["Find the price of ONE item you are told about, in pence","Put that price under its item in the ratio table","Find the multiplier","Find the price of ONE of the other item","Multiply by how many the question asks for","Change back to pounds"]},
+    {name:"Percentage discount", steps:["Find 10% by dividing by 10","Build the percentage you need","Take it away from the price","Write the answer with £"]}
+  ]
+};
+
+/* ---------- small helpers ---------- */
+const INTERVALS = [0, 1, 2, 4, 7, 14];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ymd = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+const today = () => ymd(new Date());
+const addDays = (s, n) => { const [y,m,d] = s.split("-").map(Number); return ymd(new Date(y, m-1, d+n)); };
+function niceDate(s){
+  if (!s || s <= today()) return "today";
+  if (s === addDays(today(), 1)) return "tomorrow";
+  const [y,m,d] = s.split("-").map(Number);
+  return new Date(y, m-1, d).toLocaleDateString("en-GB", {weekday:"long", day:"numeric", month:"short"});
+}
+const shuffle = a => { const b = a.slice(); for (let i = b.length-1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+const LS = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+const uid36 = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+const I = {
+  star: (f, s=20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8z" fill="${f}" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
+  flame: `<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 5 6 5 11a5 5 0 01-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3-1-3 0-6.5 1-9.5z" fill="var(--warm)" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>`,
+  gear: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M2.5 12h3M18.5 12h3M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/></svg>`,
+  speak: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>`,
+  back: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>`,
+  bulb: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></svg>`,
+  heart: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/></svg>`,
+  plus: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`,
+  cards: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="15" rx="2.5"/><path d="M8 3h10.5A2.5 2.5 0 0121 5.5V18"/></svg>`,
+  quiz: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .6-1.5 1.2-1.5 2.3M12 17h.01"/></svg>`,
+  match: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="7" height="6" rx="1.5"/><rect x="14" y="14" width="7" height="6" rx="1.5"/><path d="M10 7h4a3 3 0 013 3v4" stroke-linecap="round"/></svg>`,
+  order: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 5l1-1v4M3.5 11.5c0-1 2.5-1 2.5 0S3.5 13.5 3.5 14H6M3.5 17h2.2l-1 1.2c1 0 1.3.5 1.3 1s-.5 1-1.2 1H3.5"/></svg>`,
+  logo: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>`
+};
+
+/* ---------- state ---------- */
+const S = {
+  view: "home", deckId: null, decks: LS.get("sgr-decks", []),
+  progress: Object.assign({xp:0, streak:0, lastDay:null, cards:{}}, LS.get("sgr-progress", {})),
+  settings: Object.assign({tint:"cream", size:"l", spacing:false, sound:true, theme:"auto"}, LS.get("sgr-settings", {})),
+  round: null, add: null, sampleOK: false, imagesOK: false, cloud: false, confirmDelete: false
+};
+let db = null, sample = null, progRef = null, decksCloud = false;
+
+const allDecks = () => [BUILTIN, ...S.decks];
+const findDeck = id => allDecks().find(d => d.id === id);
+const keyOf = (deck, card) => deck.id + ":" + card.id;
+const cardState = k => S.progress.cards[k] || {box:0, due:null};
+const isDue = k => { const c = cardState(k); return c.box === 0 || !c.due || c.due <= today(); };
+
+function deckStats(deck){
+  const n = deck.cards.length || 1;
+  let sum = 0, remembered = 0, due = 0, next = null;
+  for (const c of deck.cards){
+    const st = cardState(keyOf(deck, c));
+    sum += st.box; if (st.box >= 2) remembered++;
+    if (isDue(keyOf(deck, c))) due++;
+    else if (!next || st.due < next) next = st.due;
+  }
+  return {strength: Math.round(100 * sum / (5 * n)), remembered, due, next, total: deck.cards.length};
+}
+function missionCards(){
+  const out = [];
+  for (const d of allDecks()) for (const c of d.cards) if (isDue(keyOf(d, c))) out.push({deck:d, card:c, seen: cardState(keyOf(d,c)).box > 0});
+  // reviews first (they are about to be forgotten), then a few new cards
+  out.sort((a, b) => (b.seen - a.seen));
+  return out.slice(0, 8);
+}
+function nextCheck(){
+  let next = null;
+  for (const d of allDecks()) for (const c of d.cards){ const st = cardState(keyOf(d,c)); if (st.box > 0 && st.due && st.due > today() && (!next || st.due < next)) next = st.due; }
+  return next;
+}
+const level = () => 1 + Math.floor(S.progress.xp / 150);
+const levelPct = () => Math.round(100 * (S.progress.xp % 150) / 150);
+
+/* ---------- saving ---------- */
+let writeChain = Promise.resolve(), saveQueued = false;
+function saveProgress(){
+  LS.set("sgr-progress", S.progress);
+  if (!progRef || saveQueued) return;
+  saveQueued = true;
+  writeChain = writeChain.then(async () => {
+    saveQueued = false;
+    try { await progRef.set(JSON.parse(JSON.stringify(S.progress))); }
+    catch(e){ if (e && e.code === "invalid_argument") { progRef = null; } }
+  });
+}
+function saveSettings(){ LS.set("sgr-settings", S.settings); applySettings(); }
+function applySettings(){
+  const r = document.documentElement;
+  r.setAttribute("data-tint", S.settings.tint);
+  r.setAttribute("data-size", S.settings.size);
+  r.setAttribute("data-spacing", S.settings.spacing ? "wide" : "normal");
+  if (S.settings.theme === "auto") r.removeAttribute("data-theme"); else r.setAttribute("data-theme", S.settings.theme);
+}
+async function saveDeck(deck){
+  if (decksCloud){
+    try { await db.collection("decks").doc(deck.id).set(JSON.parse(JSON.stringify(deck))); return true; }
+    catch(e){ toast("Could not save online. Saved on this device instead."); }
+  }
+  S.decks = S.decks.filter(d => d.id !== deck.id).concat(deck);
+  LS.set("sgr-decks", S.decks);
+  return true;
+}
+async function removeDeck(id){
+  if (decksCloud){ try { await db.collection("decks").doc(id).delete(); } catch(e){} }
+  S.decks = S.decks.filter(d => d.id !== id);
+  LS.set("sgr-decks", S.decks);
+}
+
+function grade(k, ok){
+  const st = Object.assign({box:0}, cardState(k));
+  st.box = ok ? Math.min(5, st.box + 1) : 1;
+  st.due = addDays(today(), INTERVALS[st.box]);
+  S.progress.cards[k] = st;
+}
+function addXP(n){ S.progress.xp += n; }
+function markDay(){
+  const t = today();
+  if (S.progress.lastDay === t) return;
+  S.progress.streak = (S.progress.lastDay === addDays(t, -1)) ? S.progress.streak + 1 : 1;
+  S.progress.lastDay = t;
+}
+function streakNow(){ const l = S.progress.lastDay; return (l === today() || l === addDays(today(), -1)) ? S.progress.streak : 0; }
+
+/* ---------- sound and speech ---------- */
+let actx = null;
+function chime(good){
+  if (!S.settings.sound) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const notes = good ? [660, 880] : [392];
+    notes.forEach((f, i) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = "sine"; o.frequency.value = f;
+      const t = actx.currentTime + i * 0.11;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.07, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t + 0.4);
+    });
+  } catch(e){}
+}
+function speak(text){
+  try {
+    const ss = window.speechSynthesis; if (!ss) { toast("Read aloud is not available here."); return; }
+    ss.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-GB"; u.rate = 0.9;
+    const v = ss.getVoices().find(v => /en-GB/i.test(v.lang)); if (v) u.voice = v;
+    ss.speak(u);
+  } catch(e){ toast("Read aloud is not available here."); }
+}
+const speakBtn = text => `<button class="iconbtn" data-act="speak" data-text="${esc(text)}" aria-label="Read aloud" title="Read aloud">${I.speak}</button>`;
+
+let toastTimer;
+function toast(msg){
+  const r = document.getElementById("toastRoot");
+  r.innerHTML = `<div class="toast" role="status">${esc(msg)}</div>`;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => r.innerHTML = "", 3200);
+}
+
+function confetti(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c = document.createElement("canvas"); c.className = "confetti"; document.body.appendChild(c);
+  const x = c.getContext("2d"); const W = c.width = innerWidth, H = c.height = innerHeight;
+  const cs = getComputedStyle(document.documentElement);
+  const cols = ["--sun","--teal","--good","--warm","--berry"].map(v => cs.getPropertyValue(v).trim());
+  const P = Array.from({length:110}, () => ({x: W/2 + (Math.random()-.5)*W*.3, y: H*.35, vx:(Math.random()-.5)*11, vy:-Math.random()*12-4, r:Math.random()*6+4, c:cols[Math.floor(Math.random()*cols.length)], a:Math.random()*6}));
+  let t = 0;
+  (function f(){ x.clearRect(0,0,W,H); for (const p of P){ p.vy += .35; p.x += p.vx; p.y += p.vy; p.a += .2; x.save(); x.translate(p.x,p.y); x.rotate(p.a); x.fillStyle = p.c; x.fillRect(-p.r/2,-p.r/4,p.r,p.r/2); x.restore(); }
+    if (++t < 110) requestAnimationFrame(f); else c.remove(); })();
+}
+
+/* ---------- visual aids ---------- */
+function visualHTML(v){
+  if (!v) return "";
+  if (v.kind === "table") return `<div class="vtable"><table><thead><tr>${v.headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${v.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  if (v.kind === "steps") return `<ol class="vsteps">${v.steps.map(s => `<li><span>${esc(s)}</span></li>`).join("")}</ol>`;
+  return "";
+}
+const hookHTML = h => h ? `<div class="hook">${I.bulb}<span><span class="small" style="display:block;font-weight:800">Memory hook</span>${esc(h)}</span></div>` : "";
+function ringHTML(pct, big, small, cls = ""){
+  const r = 52, C = 2 * Math.PI * r, off = C * (1 - Math.max(0, Math.min(100, pct)) / 100);
+  return `<div class="ring ${cls}"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="14"/><circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--good)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}"/></svg><div class="num"><div><b>${big}</b><span>${small}</span></div></div></div>`;
+}
+
+/* ---------- views ---------- */
+function topBar(){
+  return `<header class="bar">
+    <button class="brand" data-act="home" aria-label="Home"><span class="logo">${I.logo}</span><span>Sophie's GCSE Revision</span></button>
+    <span class="chip" title="Days in a row">${I.flame}<span>${streakNow()} day${streakNow() === 1 ? "" : "s"}</span></span>
+    <span class="chip" title="Level">${I.star("var(--sun)", 18)}<span>Level ${level()}</span></span>
+    <button class="iconbtn" data-act="settings" aria-label="Settings" title="Settings">${I.gear}</button>
+  </header>`;
+}
+
+function homeView(){
+  const m = missionCards(), next = nextCheck();
+  const totalCards = allDecks().reduce((n, d) => n + d.cards.length, 0);
+  const remembered = allDecks().reduce((n, d) => n + deckStats(d).remembered, 0);
+  const doneToday = S.progress.lastDay === today();
+  const mission = m.length
+    ? `<div class="mission">${ringHTML(doneToday ? 100 : 0, m.length, m.length === 1 ? "card" : "cards")}
+        <div class="txt"><span class="eyebrow">Today's mission</span>
+        <h1>${m.length} card${m.length === 1 ? "" : "s"} to check</h1>
+        <p class="muted">${m.filter(x => x.seen).length ? "Some of these are ready to fade. Checking them now makes them stick for longer." : "New cards to learn. Take your time, there is no timer."}</p>
+        <div class="row"><button class="btn" data-act="mission">Start mission</button></div></div></div>`
+    : `<div class="mission">${ringHTML(100, "✓", "done")}
+        <div class="txt"><span class="eyebrow">Today's mission</span><h1>All done for today</h1>
+        <p class="muted">Your memory is safe. The next check is ${niceDate(next)}.</p>
+        <div class="row"><button class="btn ghost" data-act="practise">Practise anyway</button></div></div></div>`;
+  return `${topBar()}
+  ${mission}
+  <div class="calm">${I.heart}<p><b>Worried about forgetting?</b> That is normal, and it is how memory works. This app keeps track for you. It brings each card back just before it would fade, and every time you remember it, it stays for longer.</p></div>
+  <div class="stats">
+    <div class="stat"><span class="lbl">Level ${level()}</span><span class="big">${S.progress.xp} XP</span><div class="xpbar" aria-label="${levelPct()}% to next level"><i style="width:${levelPct()}%"></i></div></div>
+    <div class="stat"><span class="lbl">Days in a row</span><span class="big">${streakNow()}</span><span class="lbl">${doneToday ? "Done today" : "Do one game to keep it going"}</span></div>
+    <div class="stat"><span class="lbl">Cards remembered</span><span class="big">${remembered} / ${totalCards}</span><span class="lbl">Checked at least twice</span></div>
+  </div>
+  <section class="sheet"><h2>My topics</h2>
+    <div class="grid">
+      ${allDecks().map(d => { const s = deckStats(d); return `<button class="deck" data-act="deck" data-id="${esc(d.id)}">${ringHTML(s.strength, s.strength + "%", "", "sm")}<span class="info"><span class="subj ${esc(d.subject)}">${esc(d.subject)}</span><b>${esc(d.title)}</b><span class="small muted">${s.due ? s.due + " to check" : "Next check " + niceDate(s.next)}</span></span></button>`; }).join("")}
+      <button class="deck adddeck" data-act="add">${I.plus}<span>Add revision material</span></button>
+    </div>
+  </section>`;
+}
+
+function deckView(){
+  const d = findDeck(S.deckId); if (!d) { S.view = "home"; return homeView(); }
+  const s = deckStats(d);
+  const canMatch = (d.keywords || []).length >= 3, canOrder = (d.methods || []).length >= 1;
+  return `${topBar()}
+  <button class="back" data-act="home">${I.back} All topics</button>
+  <div class="panel">
+    <div class="row" style="align-items:center">${ringHTML(s.strength, s.strength + "%", "memory")}
+      <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:200px"><span class="subj ${esc(d.subject)}">${esc(d.subject)}</span><h1>${esc(d.title)}</h1>
+      <p class="muted">You remember ${s.remembered} of ${s.total} cards. ${s.due ? s.due + " are ready to check now." : "Next check: " + niceDate(s.next) + "."}</p></div></div>
+  </div>
+  <section class="sheet"><h2>Choose a game</h2>
+    <div class="games">
+      <button class="game g1" data-act="play" data-mode="quiz"><span class="gi">${I.quiz}</span><b>Quick quiz</b><span>Pick the right answer from four. About 5 minutes.</span></button>
+      <button class="game g2" data-act="play" data-mode="flip"><span class="gi">${I.cards}</span><b>Flip cards</b><span>Think of the answer, then flip to check.</span></button>
+      <button class="game g3" data-act="play" data-mode="match" ${canMatch ? "" : "disabled"}><span class="gi">${I.match}</span><b>Match the words</b><span>${canMatch ? "Pair each key word with its meaning." : "Needs 3 or more key words."}</span></button>
+      <button class="game g4" data-act="play" data-mode="order" ${canOrder ? "" : "disabled"}><span class="gi">${I.order}</span><b>Order the steps</b><span>${canOrder ? "Put each method in the right order." : "No methods in this topic."}</span></button>
+    </div>
+  </section>
+  <section class="sheet"><h2>Revision sheet</h2>
+    ${(d.keywords || []).length ? `<details open><summary>Key words</summary><div class="kw">${d.keywords.map(k => `<div class="t">${esc(k.term)}</div><div>${esc(k.meaning)}</div>`).join("")}</div></details>` : ""}
+    ${(d.methods || []).length ? `<details><summary>Methods</summary><div class="sheet">${d.methods.map(m => `<div class="sheetcard"><b>${esc(m.name)}</b>${visualHTML({kind:"steps", steps:m.steps})}</div>`).join("")}</div></details>` : ""}
+    <details><summary>All cards (${d.cards.length})</summary><div class="sheet">
+      ${d.cards.map(c => `<div class="sheetcard"><div class="qa"><div><p>${esc(c.q)}</p><p class="ans">${esc(c.a)}</p></div>${speakBtn(c.q + ". " + c.a)}</div>${visualHTML(c.visual)}${hookHTML(c.hook)}
+        ${d.builtin ? "" : `<div class="row"><button class="btn ghost sm" data-act="delcard" data-id="${esc(c.id)}">Remove card</button></div>`}</div>`).join("")}
+    </div></details>
+  </section>
+  ${d.builtin ? "" : `<section class="panel"><h3>Add a card yourself</h3>
+    <label class="f" for="mq">Question<input type="text" id="mq" placeholder="For example: What is 10% of 240?"></label>
+    <label class="f" for="ma">Answer<input type="text" id="ma" placeholder="For example: 24"></label>
+    <div class="row"><button class="btn teal" data-act="addcard">Add card</button></div></section>
+    <div class="row">${S.confirmDelete
+      ? `<span>Delete this topic and its cards?</span><button class="btn warm sm" data-act="delyes">Yes, delete</button><button class="btn ghost sm" data-act="delno">Keep it</button>`
+      : `<button class="btn ghost sm danger" data-act="deldeck">Delete topic</button>`}</div>`}`;
+}
+
+/* ---------- rounds ---------- */
+function startRound(mode, items, deckId, label){
+  S.round = {mode, items, i:0, deckId, label, right:0, total:items.length, xp:0, results:[], answered:false, flipped:false, hint:false, explain:null, sel:null, matched:{}, built:[], misses:0};
+  S.view = "play"; render(); window.scrollTo(0, 0);
+}
+function cardItem(deck, c){
+  let ch = (c.choices || []).filter(Boolean);
+  if (ch.length < 3){ const others = shuffle(deck.cards.filter(x => x.id !== c.id).map(x => x.a)).filter(a => a !== c.a); ch = [c.a, ...others.slice(0, 3)]; }
+  return {deck, card:c, choices: shuffle([...new Set(ch)])};
+}
+function playDeck(mode){
+  const d = findDeck(S.deckId);
+  if ((mode === "quiz" || mode === "flip") && !d.cards.length){ toast("Add some cards to this topic first."); return; }
+  if (mode === "quiz" || mode === "flip"){
+    const order = d.cards.slice().sort((a, b) => (isDue(keyOf(d,b)) - isDue(keyOf(d,a))) || (cardState(keyOf(d,a)).box - cardState(keyOf(d,b)).box));
+    startRound(mode, order.slice(0, 8).map(c => cardItem(d, c)), d.id, mode === "quiz" ? "Quick quiz" : "Flip cards");
+  } else if (mode === "match"){
+    const kws = shuffle(d.keywords).slice(0, 6);
+    startRound("match", [{pairs:kws, left:shuffle(kws.map((k,i) => ({i, t:k.term}))), right:shuffle(kws.map((k,i) => ({i, t:k.meaning})))}], d.id, "Match the words");
+    S.round.total = kws.length;
+  } else if (mode === "order"){
+    startRound("order", shuffle(d.methods).slice(0, 3).map(m => ({method:m, pool:shuffle(m.steps.map((s, i) => ({i, s})))})), d.id, "Order the steps");
+  }
+}
+
+function dotsHTML(){
+  const r = S.round;
+  if (r.mode === "match") return `<div class="dots" aria-hidden="true">${r.items[0].pairs.map((_, i) => `<i class="${r.matched[i] ? "done" : ""}"></i>`).join("")}</div>`;
+  return `<div class="dots" aria-hidden="true">${r.items.map((_, i) => `<i class="${i < r.results.length ? (r.results[i] ? "done" : "miss") : (i === r.i ? "now" : "")}"></i>`).join("")}</div>`;
+}
+
+function playView(){
+  const r = S.round;
+  const head = `<div class="playtop"><button class="btn ghost sm" data-act="stop">${I.back} Stop</button>${dotsHTML()}<span class="small muted">${r.mode === "match" ? Object.keys(r.matched).length + " of " + r.total : (r.mode === "order" ? "Method " : "Card ") + Math.min(r.i + 1, r.items.length) + " of " + r.items.length}</span></div>`;
+  let body = "";
+  if (r.mode === "quiz"){
+    const it = r.items[r.i], c = it.card;
+    body = `<div class="big-card"><div class="qhead"><div><span class="eyebrow">${esc(it.deck.title)}</span><p class="qtext">${esc(c.q)}</p></div>${speakBtn(c.q)}</div>
+      <div class="choices">${it.choices.map((ch, k) => {
+        let cls = ""; if (r.answered){ if (ch === c.a) cls = "right"; else if (ch === r.sel) cls = "wrong"; }
+        return `<button class="choice ${cls}" data-act="pick" data-k="${k}" ${r.answered ? "disabled" : ""}><span class="k">${"ABCD"[k]}</span><span>${esc(ch)}</span></button>`; }).join("")}</div>
+      ${!r.answered && c.hint ? (r.hint ? `<div class="hintbox"><b>Hint:</b> ${esc(c.hint)}</div>` : `<div><button class="btn ghost sm" data-act="hint">Show a hint</button></div>`) : ""}
+      ${r.answered ? feedbackHTML(c, r.sel === c.a) : ""}</div>`;
+  } else if (r.mode === "flip"){
+    const it = r.items[r.i], c = it.card;
+    body = `<div class="big-card"><div class="qhead"><div><span class="eyebrow">${esc(it.deck.title)}</span><p class="qtext">${esc(c.q)}</p></div>${speakBtn(c.q)}</div>
+      ${!r.flipped ? `<p class="muted">Say or write your answer. Then flip the card.</p>
+        ${c.hint ? (r.hint ? `<div class="hintbox"><b>Hint:</b> ${esc(c.hint)}</div>` : `<div><button class="btn ghost sm" data-act="hint">Show a hint</button></div>`) : ""}
+        <button class="btn teal wide" data-act="flip">Flip the card</button>`
+      : `<div class="qhead"><p class="flip-ans">${esc(c.a)}</p>${speakBtn(c.a)}</div>${visualHTML(c.visual)}${hookHTML(c.hook)}
+        ${explainHTML()}
+        <p><b>Did you know it?</b></p>
+        <div class="choices"><button class="btn warm" data-act="self" data-ok="0">Not yet</button><button class="btn good" data-act="self" data-ok="1">I knew it</button></div>`}</div>`;
+  } else if (r.mode === "match"){
+    const it = r.items[0];
+    body = `<div class="big-card"><p class="qtext">Tap a key word, then tap its meaning.</p>
+      <div class="match"><div class="col">${it.left.map(x => `<button class="tile term ${r.matched[x.i] ? "ok" : ""} ${r.sel === x.i ? "sel" : ""}" data-act="mterm" data-i="${x.i}" ${r.matched[x.i] ? "disabled" : ""}>${esc(x.t)}</button>`).join("")}</div>
+      <div class="col">${it.right.map(x => `<button class="tile ${r.matched[x.i] ? "ok" : ""}" data-act="mdef" data-i="${x.i}" ${r.matched[x.i] ? "disabled" : ""}>${esc(x.t)}</button>`).join("")}</div></div>
+      ${r.msg ? `<p class="small muted" role="status">${esc(r.msg)}</p>` : ""}</div>`;
+  } else if (r.mode === "order"){
+    const it = r.items[r.i], m = it.method, nextI = r.built.length;
+    const complete = nextI === m.steps.length;
+    body = `<div class="big-card"><div><span class="eyebrow">Method</span><p class="qtext">${esc(m.name)}</p></div>
+      <p class="muted">Tap the steps in the right order. Start with step 1.</p>
+      <div class="built">${r.built.length ? r.built.map((s, n) => `<div class="stepok"><b>${n + 1}</b><span>${esc(m.steps[s])}</span></div>`).join("") : `<span class="small muted">Your steps go here.</span>`}</div>
+      ${complete ? `<div class="feedback ok"><span class="head">Method complete</span><button class="btn good" data-act="nextorder">${r.i + 1 < r.items.length ? "Next method" : "Finish"}</button></div>`
+      : `<div class="pool">${it.pool.filter(p => !r.built.includes(p.i)).map(p => `<button class="tile ${r.misses >= 2 && p.i === nextI ? "glow" : ""}" data-act="ostep" data-i="${p.i}">${esc(p.s)}</button>`).join("")}</div>`}
+      ${r.msg ? `<p class="small muted" role="status">${esc(r.msg)}</p>` : ""}</div>`;
+  }
+  return head + body;
+}
+function feedbackHTML(c, ok){
+  const r = S.round;
+  return `<div class="feedback ${ok ? "ok" : "notyet"}"><span class="head">${ok ? "Yes, that's right." : "Not yet. The answer is " + esc(c.a) + "."}</span>
+    ${ok ? "" : `<p class="small">This card will come back soon, so you get another go.</p>`}
+    ${visualHTML(c.visual)}${hookHTML(c.hook)}${explainHTML()}
+    <div class="row"><button class="btn ${ok ? "good" : "teal"}" data-act="next">${r.i + 1 < r.items.length ? "Next card" : "Finish"}</button></div></div>`;
+}
+function explainHTML(){
+  const r = S.round;
+  if (!S.sampleOK) return "";
+  if (r.explain == null) return `<div><button class="btn ghost sm" data-act="explain">Explain it another way</button></div>`;
+  return `<div class="explain" role="status" id="explainBox">${esc(r.explain)}</div>`;
+}
+
+function doneView(){
+  const r = S.round, total = r.total || 1, pct = r.right / total;
+  const stars = pct >= .9 ? 3 : pct >= .6 ? 2 : 1;
+  const back = r.deckId ? `<button class="btn ghost" data-act="deck" data-id="${esc(r.deckId)}">Back to topic</button>` : "";
+  const ret = r.mode === "quiz" || r.mode === "flip" ? r.items.filter((_, i) => r.results[i] === false).length : 0;
+  return `${topBar()}<div class="panel done">
+    <div class="stars">${[0,1,2].map(i => I.star(i < stars ? "var(--sun)" : "var(--surface-2)", 64)).join("")}</div>
+    <h1>${stars === 3 ? "Brilliant work" : stars === 2 ? "Great effort" : "Well done for trying"}</h1>
+    <p>You got <b>${r.right} out of ${total}</b> ${r.mode === "order" ? "methods without a slip" : r.mode === "match" ? "pairs first time" : "right"}. You earned <b>${r.xp} XP</b>.</p>
+    ${ret ? `<p class="muted">${ret} card${ret === 1 ? "" : "s"} will come back tomorrow for another go. That is how they stick.</p>` : ""}
+    <div class="row" style="justify-content:center"><button class="btn" data-act="again">Play again</button>${back}<button class="btn ghost" data-act="home">Home</button></div>
+  </div>`;
+}
+function finishRound(){
+  markDay(); saveProgress(); S.view = "done"; render(); window.scrollTo(0, 0);
+  if (S.round.right / (S.round.total || 1) >= .6) confetti();
+}
+
+/* ---------- add material ---------- */
+function addView(){
+  const a = S.add;
+  if (a.stage === "review") return reviewView();
+  const can = S.sampleOK;
+  if (!can) return pasteAddView();
+  return `${topBar()}<button class="back" data-act="home">${I.back} All topics</button>
+  <div class="panel"><h1>Add revision material</h1>
+    <p class="muted">Add notes, a worksheet or a revision guide page. The app turns it into cards, key words and step-by-step methods.</p>
+    ${can ? "" : `<div class="calm"><p>Making cards from material needs Claude. Open this page in the Claude app and allow it when asked. You can still add cards yourself inside any topic you make.</p></div>`}
+    <label class="f" for="atitle">Topic name<input type="text" id="atitle" value="${esc(a.title)}" placeholder="For example: Cell structure"></label>
+    <label class="f" for="asubj">Subject<select id="asubj">${["Maths","English","Science","History","Geography","Other"].map(s => `<option ${a.subject === s ? "selected" : ""}>${s}</option>`).join("")}</select></label>
+    <div class="drop" id="drop" role="button" tabindex="0" data-act="pickfiles">
+      <b>${S.imagesOK ? "Add photos of worksheets, or text files" : "Add text files"}</b>
+      <span class="small muted">${S.imagesOK ? "Tap to choose, or drop them here. Up to " + (a.maxImages || 5) + " photos." : "Tap to choose .txt or .md files, or drop them here."}</span>
+      <input type="file" id="afile" multiple hidden accept="${S.imagesOK ? (a.mediaTypes || ["image/jpeg","image/png","image/webp"]).join(",") + "," : ""}.txt,.md,text/plain">
+    </div>
+    ${a.files.length ? `<div class="thumbs">${a.files.map((f, i) => `<div class="thumb">${f.url ? `<img src="${f.url}" alt="">` : `<span>${esc(f.name)}</span>`}<button data-act="rmfile" data-i="${i}" aria-label="Remove ${esc(f.name)}">×</button></div>`).join("")}</div>` : ""}
+    <label class="f" for="atext">Or paste text<textarea id="atext" placeholder="Paste notes, a page of a revision guide, or questions here.">${esc(a.text)}</textarea></label>
+    <label class="f" for="acount">How many cards?<select id="acount">${[8,12,16,20].map(n => `<option ${a.count === n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+    ${a.busy ? `<div class="status" role="status"><span class="spinner"></span><span>${esc(a.progress || "Reading your material...")}</span><button class="btn ghost sm" data-act="cancelgen" style="margin-left:auto">Stop</button></div>`
+      : `<div class="row"><button class="btn" data-act="generate" ${can ? "" : "disabled"}>Make my revision cards</button>
+         <button class="btn ghost" data-act="blank">Start an empty topic</button></div>`}
+    ${a.error ? `<p class="danger" role="alert">${esc(a.error)}</p>` : ""}
+  </div>`;
+}
+function pasteAddView(){
+  const a = S.add;
+  return `${topBar()}<button class="back" data-act="home">${I.back} All topics</button>
+  <div class="panel"><h1>Add revision material</h1>
+    <p class="muted">Claude turns your notes into cards, key words and step-by-step methods. It takes three steps.</p>
+    <label class="f" for="atitle">Topic name<input type="text" id="atitle" value="${esc(a.title)}" placeholder="For example: Cell structure"></label>
+    <label class="f" for="asubj">Subject<select id="asubj">${["Maths","English","Science","History","Geography","Other"].map(s => `<option ${a.subject === s ? "selected" : ""}>${s}</option>`).join("")}</select></label>
+    <label class="f" for="acount">How many cards?<select id="acount">${[8,12,16,20].map(n => `<option ${a.count === n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+    <label class="f" for="atext">Notes to include (you can leave this empty if you are using photos)<textarea id="atext" placeholder="Paste notes, a page of a revision guide, or questions here.">${esc(a.text)}</textarea></label>
+  </div>
+  <div class="panel"><span class="eyebrow">Step 1</span><h2>Copy the instructions</h2>
+    <p>These tell Claude exactly how to make your cards.</p>
+    <div class="row"><button class="btn teal" data-act="copyprompt">Copy instructions</button><a class="btn ghost" href="https://claude.ai/new" target="_blank" rel="noopener">Open Claude</a></div>
+    ${a.showPrompt ? `<textarea id="promptBox" readonly aria-label="Instructions for Claude">${esc(buildPrompt(a, a.text.slice(0, 60000), 0, true))}</textarea><p class="small muted">Select all of this text and copy it.</p>` : ""}
+  </div>
+  <div class="panel"><span class="eyebrow">Step 2</span><h2>Ask Claude</h2>
+    <p>Paste the instructions into Claude. Add photos of your worksheets or notes if you have them. Then press send.</p></div>
+  <div class="panel"><span class="eyebrow">Step 3</span><h2>Paste Claude's reply</h2>
+    <p>Copy Claude's whole reply and paste it here.</p>
+    <textarea id="areply" placeholder="Claude's reply starts with a curly bracket {">${esc(a.reply || "")}</textarea>
+    <div class="row"><button class="btn" data-act="parsereply">Make my cards</button><button class="btn ghost" data-act="blank">Start an empty topic</button></div>
+    ${a.error ? `<p class="danger" role="alert">${esc(a.error)}</p>` : ""}
+  </div>`;
+}
+function parseReply(t){
+  t = String(t || "").trim();
+  try { return JSON.parse(t); } catch(e){}
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const body = fence ? fence[1] : t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1);
+  try { return JSON.parse(body); } catch(e){ return null; }
+}
+function reviewView(){
+  const d = S.add.deck;
+  return `${topBar()}<div class="panel"><span class="eyebrow">Check your new topic</span><h1>${esc(d.title)}</h1>
+    <p class="muted">${d.cards.length} cards, ${d.keywords.length} key words, ${d.methods.length} methods. Remove anything that looks wrong, then save.</p></div>
+    <section class="sheet">${d.cards.map(c => `<div class="sheetcard"><div class="qa"><div><p>${esc(c.q)}</p><p class="ans">${esc(c.a)}</p></div><button class="btn ghost sm" data-act="rvdel" data-id="${esc(c.id)}">Remove</button></div>${visualHTML(c.visual)}${hookHTML(c.hook)}</div>`).join("")}
+    ${d.keywords.length ? `<div class="kw">${d.keywords.map(k => `<div class="t">${esc(k.term)}</div><div>${esc(k.meaning)}</div>`).join("")}</div>` : ""}
+    ${d.methods.map(m => `<div class="sheetcard"><b>${esc(m.name)}</b>${visualHTML({kind:"steps", steps:m.steps})}</div>`).join("")}</section>
+    <div class="row"><button class="btn good" data-act="savenew" ${d.cards.length ? "" : "disabled"}>Save topic</button><button class="btn ghost" data-act="rvback">Start again</button></div>`;
+}
+
+function normDeck(raw, title, subject){
+  const s = v => String(v ?? "").trim().slice(0, 400);
+  const cards = (Array.isArray(raw && raw.cards) ? raw.cards : []).map(c => {
+    const q = s(c && c.q), a = s(c && c.a); if (!q || !a) return null;
+    const others = [...new Set((Array.isArray(c.choices) ? c.choices : []).map(s).filter(x => x && x !== a))].slice(0, 3);
+    let v = null, cv = c.visual;
+    if (cv && cv.kind === "table" && Array.isArray(cv.headers) && Array.isArray(cv.rows) && cv.headers.length){
+      v = {kind:"table", headers: cv.headers.map(s).slice(0, 6), rows: cv.rows.filter(Array.isArray).slice(0, 6).map(r => r.map(s).slice(0, 6))};
+    } else if (cv && cv.kind === "steps" && Array.isArray(cv.steps)){
+      const st = cv.steps.map(s).filter(Boolean).slice(0, 8); if (st.length) v = {kind:"steps", steps: st};
+    }
+    return {id: "c" + uid36(), q, a, hint: s(c.hint), hook: s(c.hook), choices: [a, ...others], visual: v};
+  }).filter(Boolean).slice(0, 30);
+  const keywords = (Array.isArray(raw && raw.keywords) ? raw.keywords : []).map(k => ({term: s(k && k.term), meaning: s(k && k.meaning)})).filter(k => k.term && k.meaning).slice(0, 10);
+  const methods = (Array.isArray(raw && raw.methods) ? raw.methods : []).map(m => ({name: s(m && m.name), steps: (Array.isArray(m && m.steps) ? m.steps : []).map(s).filter(Boolean).slice(0, 8)})).filter(m => m.name && m.steps.length >= 2).slice(0, 4);
+  return {id: "d" + uid36(), title: title || s(raw && raw.title) || "New topic", subject, createdAt: Date.now(), cards, keywords, methods};
+}
+
+function buildPrompt(a, material, nImages, forChat){
+  return `You are making GCSE revision cards for a Year 11 student in England. Write in a dyslexia-friendly, literal way.
+Rules for every word you write:
+- Short sentences. Plain, literal words. No idioms, no sarcasm, no vague wording.
+- One idea per card. Answers are 12 words or fewer.
+- Use only facts from the material, plus standard GCSE facts needed to explain it. Do not invent anything.
+- UK spelling and units. Use the exam board wording if the material uses it.
+Topic: ${a.title || "work it out from the material"}. Subject: ${a.subject}.
+${forChat ? "If photos are attached, they show worksheets, notes or textbook pages. Read them carefully, including any handwriting.\n" : nImages ? "The " + nImages + " photo(s) show worksheets, notes or textbook pages. Read them carefully, including any handwriting.\n" : ""}Make up to ${a.count} question cards that cover the most important points, up to 8 key words, and up to 3 step-by-step methods (only if the material teaches a method or process).
+Reply with only JSON in exactly this shape:
+{"title": "short topic name",
+ "cards": [{"q": "question", "a": "answer", "hint": "a nudge that does not give the answer away",
+   "hook": "a memory hook: a vivid picture, a rhyme or a short saying, 15 words max",
+   "choices": ["the answer exactly as in a", "a believable wrong answer", "another", "another"],
+   "visual": null or {"kind": "table", "headers": ["..."], "rows": [["..."]]} or {"kind": "steps", "steps": ["..."]} }],
+ "keywords": [{"term": "word", "meaning": "meaning in 12 words or fewer"}],
+ "methods": [{"name": "method name", "steps": ["3 to 6 short steps in the right order"]}]}
+Use a table visual for comparisons, ratio tables or sets of facts. Use a steps visual for worked methods. Use null when a picture would not help.
+${material ? "Material:\n" + material : ""}`;
+}
+let genCtl = null;
+async function generate(){
+  const a = S.add; readAddForm();
+  if (!a.text.trim() && !a.files.length){ a.error = "Add some material first: photos, a text file, or pasted text."; render(); return; }
+  a.error = ""; a.busy = true; a.progress = "Reading your material..."; render();
+  const texts = a.files.filter(f => f.text != null).map(f => "From " + f.name + ":\n" + f.text);
+  const material = [a.text, ...texts].join("\n\n").slice(0, 60000);
+  const images = a.files.filter(f => f.blob).map(f => f.blob);
+  const prompt = buildPrompt(a, material, images.length, false);
+  genCtl = new AbortController();
+  try {
+    const raw = await sample.json(prompt, {images: images.length ? images : undefined, signal: genCtl.signal,
+      onText: ({text}) => { const n = (text.match(/"q"\s*:/g) || []).length; a.progress = n ? "Writing card " + n + "..." : "Reading your material..."; const el = document.querySelector(".status span:nth-child(2)"); if (el) el.textContent = a.progress; }});
+    const deck = normDeck(raw, a.title.trim(), a.subject);
+    if (!deck.cards.length) throw {code: "empty"};
+    a.deck = deck; a.stage = "review"; a.busy = false; render(); window.scrollTo(0, 0);
+  } catch(e){
+    a.busy = false;
+    const code = e && e.code;
+    a.error = code === "cancelled" ? "" :
+      code === "not_granted" || code === "sampling_disabled" ? "Claude is not switched on for this page, so it cannot make cards. You can still start an empty topic and add cards yourself." :
+      code === "rate_limited" ? "Claude is busy right now. Wait a few minutes, then try again." :
+      code === "image_rejected" ? "One of the photos could not be read. Try a clearer photo, or a JPEG or PNG." :
+      code === "prompt_too_large" ? "That is a lot of material. Try one or two pages at a time." :
+      code === "invalid_json" || code === "empty" ? "The cards did not come out right. Try again, or add a little less material." :
+      "Something went wrong while making the cards. Try again.";
+    if (code === "not_granted" || code === "sampling_disabled") S.sampleOK = false;
+    render();
+  }
+}
+function readAddForm(){
+  const a = S.add; if (!a) return;
+  const t = document.getElementById("atitle"), s = document.getElementById("asubj"), x = document.getElementById("atext"), n = document.getElementById("acount");
+  if (t) a.title = t.value; if (s) a.subject = s.value; if (x) a.text = x.value; if (n) a.count = Number(n.value);
+  const rp = document.getElementById("areply"); if (rp) a.reply = rp.value;
+}
+async function addFiles(list){
+  const a = S.add; readAddForm();
+  for (const f of list){
+    if (/^text\/|\.(txt|md)$/i.test(f.type + " " + f.name) && !/^image\//.test(f.type)){
+      try { a.files.push({name: f.name, text: (await f.text()).slice(0, 30000)}); } catch(e){}
+    } else if (/^image\//.test(f.type)){
+      if (!S.imagesOK){ toast("Photos cannot be sent from this view. Paste the text instead."); continue; }
+      if (a.files.filter(x => x.blob).length >= (a.maxImages || 5)){ toast("That is the most photos for one go."); continue; }
+      a.files.push({name: f.name, blob: f, url: URL.createObjectURL(f)});
+    } else toast(f.name + " is not a photo or text file.");
+  }
+  render();
+}
+
+/* ---------- render + events ---------- */
+function settingsView(){
+  const st = S.settings;
+  const seg = (key, opts) => `<div class="seg" role="group">${opts.map(([v, l, sw]) => `<button data-act="set" data-k="${key}" data-v="${v}" aria-pressed="${String(st[key]) === String(v)}">${sw ? `<span class="swatch" style="background:${sw}"></span>` : ""}${l}</button>`).join("")}</div>`;
+  return `${topBar()}<button class="back" data-act="home">${I.back} Back</button>
+  <div class="panel"><h1>Make it comfortable</h1><p class="muted">These settings stay on this device.</p>
+    <h3>Background colour</h3>${seg("tint", [["cream","Cream","#FBF6E4"],["sky","Sky","#E7F1F8"],["mint","Mint","#E8F4EC"],["rose","Rose","#F8EAEC"],["white","White","#FFFFFF"]])}
+    <h3>Light or dark</h3>${seg("theme", [["auto","Match my device"],["light","Light"],["dark","Dark"]])}
+    <h3>Text size</h3>${seg("size", [["m","Medium"],["l","Large"],["xl","Extra large"]])}
+    <h3>Letter spacing</h3>${seg("spacing", [["false","Normal"],["true","Wider"]])}
+    <h3>Sounds</h3>${seg("sound", [["true","On"],["false","Off"]])}
+  </div>
+  <div class="panel"><h3>How the app helps you remember</h3>
+    <p>Each card sits in one of five memory boxes. Get it right and it moves up a box and comes back later: tomorrow, then in 2 days, 4 days, a week, two weeks. If you are not sure yet, it goes back to box 1 so you can practise it again soon. You never lose points for getting something wrong.</p>
+    <p class="small muted">${S.cloud ? "Your progress is saved to your Claude account." : "Your progress is saved in this browser on this device."}</p></div>
+  <div class="panel"><h3>Backup</h3>
+    <p>Save a backup file to keep your topics and progress safe, or to move them to another device or browser.</p>
+    <div class="row"><button class="btn teal sm" data-act="backup">Save a backup file</button><button class="btn ghost sm" data-act="restore">Load a backup file</button></div>
+    <input type="file" id="rfile" accept=".json,application/json" hidden></div>`;
+}
+
+function render(){
+  const app = document.getElementById("app");
+  const views = {home: homeView, deck: deckView, play: playView, done: doneView, add: addView, settings: settingsView};
+  app.innerHTML = (views[S.view] || homeView)();
+}
+
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act, r = S.round;
+  switch (act){
+    case "home": S.view = "home"; S.confirmDelete = false; render(); window.scrollTo(0,0); break;
+    case "settings": S.view = "settings"; render(); window.scrollTo(0,0); break;
+    case "deck": S.deckId = b.dataset.id; S.view = "deck"; S.confirmDelete = false; render(); window.scrollTo(0,0); break;
+    case "speak": speak(b.dataset.text); break;
+    case "set": { let v = b.dataset.v; if (v === "true") v = true; else if (v === "false") v = false; S.settings[b.dataset.k] = v; saveSettings(); render(); break; }
+    case "mission": { const m = missionCards(); if (!m.length) break; startRound("quiz", m.map(x => cardItem(x.deck, x.card)), null, "Today's mission"); break; }
+    case "practise": { const pool = shuffle(allDecks().flatMap(d => d.cards.map(c => ({d, c})))).slice(0, 8); startRound("quiz", pool.map(x => cardItem(x.d, x.c)), null, "Practice"); break; }
+    case "play": playDeck(b.dataset.mode); break;
+    case "stop": S.view = r && r.deckId ? "deck" : "home"; if (r && r.results.length) { markDay(); saveProgress(); } render(); break;
+    case "hint": r.hint = true; render(); break;
+    case "pick": {
+      if (r.answered) break;
+      const it = r.items[r.i]; r.sel = it.choices[Number(b.dataset.k)]; r.answered = true;
+      const ok = r.sel === it.card.a; grade(keyOf(it.deck, it.card), ok);
+      r.results.push(ok); if (ok) r.right++; const g = ok ? 10 : 3; r.xp += g; addXP(g); chime(ok); saveProgress(); render(); break; }
+    case "flip": r.flipped = true; render(); break;
+    case "self": {
+      const it = r.items[r.i], ok = b.dataset.ok === "1"; grade(keyOf(it.deck, it.card), ok);
+      r.results.push(ok); if (ok) r.right++; const g = ok ? 10 : 3; r.xp += g; addXP(g); chime(ok); saveProgress();
+      nextCard(); break; }
+    case "next": nextCard(); break;
+    case "explain": {
+      const it = r.items[r.i], c = it.card; r.explain = "Thinking..."; render();
+      try {
+        const res = await sample(`Explain this GCSE ${it.deck.subject} question to a Year 11 student. Use dyslexia-friendly wording: 3 short numbered steps with plain, literal words. No more than 70 words. Do not use idioms.\nQuestion: ${c.q}\nCorrect answer: ${c.a}`,
+          {modelTier: "quick", onText: ({text}) => { r.explain = text; const el = document.getElementById("explainBox"); if (el) el.textContent = text; }});
+        r.explain = res.text;
+      } catch(err){ r.explain = err && err.code === "rate_limited" ? "Claude is busy right now. Try again in a few minutes." : "Could not get an explanation right now."; if (err && (err.code === "not_granted" || err.code === "sampling_disabled")) S.sampleOK = false; }
+      if (S.view === "play") render(); break; }
+    case "mterm": r.sel = Number(b.dataset.i); r.msg = ""; render(); break;
+    case "mdef": {
+      if (r.sel == null){ r.msg = "Tap a key word first."; render(); break; }
+      const i = Number(b.dataset.i);
+      if (i === r.sel){ r.matched[i] = true; if (!r.firstMiss || !r.firstMiss[i]) r.right++; r.xp += 5; addXP(5); chime(true); r.sel = null; r.msg = "";
+        if (Object.keys(r.matched).length === r.items[0].pairs.length){ render(); setTimeout(finishRound, 500); break; } render(); }
+      else { r.firstMiss = r.firstMiss || {}; r.firstMiss[r.sel] = true; r.msg = "Not that one. Try another meaning."; b.classList.add("shake"); setTimeout(() => b.classList.remove("shake"), 350); const m = document.querySelector('[role="status"]'); if (m) m.textContent = r.msg; else render(); }
+      break; }
+    case "ostep": {
+      const i = Number(b.dataset.i), want = r.built.length;
+      if (i === want){ r.built.push(i); r.misses = 0; r.msg = ""; r.xp += 4; addXP(4); chime(true); render(); }
+      else { r.misses++; r.stepSlip = true; r.msg = r.misses >= 2 ? "The glowing step comes next." : "Not that one yet. What comes " + (want === 0 ? "first" : "after step " + want) + "?"; render(); const nb = document.querySelector(`[data-act="ostep"][data-i="${i}"]`); if (nb){ nb.classList.add("shake"); } }
+      break; }
+    case "nextorder": if (!r.stepSlip) r.right++; r.stepSlip = false; r.built = []; r.misses = 0; r.msg = ""; r.results.push(true);
+      if (r.i + 1 < r.items.length){ r.i++; render(); } else finishRound(); break;
+    case "again": { const m = r.mode, did = r.deckId; if (did){ S.deckId = did; playDeck(m); } else { const pool = missionCards(); if (pool.length) startRound("quiz", pool.map(x => cardItem(x.deck, x.card)), null, "Today's mission"); else document.querySelector('[data-act="home"]').click(); } break; }
+    case "add": S.add = {stage:"form", title:"", subject:"Maths", text:"", files:[], count:12, busy:false, error:"", maxImages: S.add && S.add.maxImages, mediaTypes: S.add && S.add.mediaTypes}; await refreshLimits(); S.view = "add"; render(); window.scrollTo(0,0); break;
+    case "pickfiles": document.getElementById("afile").click(); break;
+    case "rmfile": readAddForm(); S.add.files.splice(Number(b.dataset.i), 1); render(); break;
+    case "generate": generate(); break;
+    case "copyprompt": {
+      readAddForm(); const p = buildPrompt(S.add, S.add.text.slice(0, 60000), 0, true);
+      try { await navigator.clipboard.writeText(p); toast("Copied. Now open Claude and paste it."); }
+      catch(err){ S.add.showPrompt = true; render(); const pb = document.getElementById("promptBox"); if (pb){ pb.focus(); pb.select(); } }
+      break; }
+    case "parsereply": {
+      readAddForm(); const raw = parseReply(S.add.reply);
+      if (!raw){ S.add.error = "That does not look like Claude's card reply. Copy the whole reply, including the curly brackets { }, and paste it again."; render(); break; }
+      const deck = normDeck(raw, S.add.title.trim(), S.add.subject);
+      if (!deck.cards.length){ S.add.error = "No cards were found in that reply. Ask Claude to try again, then paste the new reply."; render(); break; }
+      S.add.error = ""; S.add.deck = deck; S.add.stage = "review"; render(); window.scrollTo(0, 0); break; }
+    case "backup": {
+      const data = JSON.stringify({app: "sophies-revision", version: 1, savedAt: new Date().toISOString(), decks: S.decks, progress: S.progress}, null, 1);
+      const url = URL.createObjectURL(new Blob([data], {type: "application/json"}));
+      const link = document.createElement("a"); link.href = url; link.download = "revision-backup-" + today() + ".json";
+      document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+      toast("Backup saved to your downloads."); break; }
+    case "restore": document.getElementById("rfile").click(); break;
+    case "cancelgen": genCtl && genCtl.abort(); break;
+    case "blank": { readAddForm(); const d = {id: "d" + uid36(), title: S.add.title.trim() || "My topic", subject: S.add.subject, createdAt: Date.now(), cards: [], keywords: [], methods: []}; await saveDeck(d); S.deckId = d.id; S.view = "deck"; render(); break; }
+    case "rvdel": S.add.deck.cards = S.add.deck.cards.filter(c => c.id !== b.dataset.id); render(); break;
+    case "rvback": S.add.stage = "form"; render(); break;
+    case "savenew": { const d = S.add.deck; b.disabled = true; await saveDeck(d); S.deckId = d.id; S.view = "deck"; toast("Topic saved. Pick a game to start."); render(); window.scrollTo(0,0); break; }
+    case "addcard": {
+      const q = document.getElementById("mq").value.trim(), a = document.getElementById("ma").value.trim();
+      if (!q || !a){ toast("Write a question and an answer."); break; }
+      const d = JSON.parse(JSON.stringify(findDeck(S.deckId))); d.cards.push({id: "c" + uid36(), q, a, hint: "", hook: "", choices: [a], visual: null});
+      await saveDeck(d); toast("Card added."); render(); break; }
+    case "delcard": { const d = JSON.parse(JSON.stringify(findDeck(S.deckId))); d.cards = d.cards.filter(c => c.id !== b.dataset.id); await saveDeck(d); render(); break; }
+    case "deldeck": S.confirmDelete = true; render(); break;
+    case "delno": S.confirmDelete = false; render(); break;
+    case "delyes": await removeDeck(S.deckId); S.confirmDelete = false; S.view = "home"; toast("Topic deleted."); render(); break;
+  }
+});
+function nextCard(){
+  const r = S.round;
+  if (r.i + 1 < r.items.length){ r.i++; r.answered = false; r.flipped = false; r.hint = false; r.explain = null; r.sel = null; render(); window.scrollTo(0, 0); }
+  else finishRound();
+}
+document.addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && e.target.id === "drop"){ e.preventDefault(); document.getElementById("afile").click(); }
+});
+document.addEventListener("change", async e => {
+  if (e.target.id === "afile" && e.target.files.length){ addFiles([...e.target.files]); }
+  if (e.target.id === "rfile" && e.target.files.length){
+    try {
+      const b = JSON.parse(await e.target.files[0].text());
+      if (!b || b.app !== "sophies-revision") throw 0;
+      const incoming = Array.isArray(b.decks) ? b.decks.filter(d => d && d.id && Array.isArray(d.cards)) : [];
+      for (const d of incoming){ d.keywords = d.keywords || []; d.methods = d.methods || []; await saveDeck(d); }
+      if (b.progress && (b.progress.xp || 0) >= (S.progress.xp || 0)) S.progress = Object.assign({xp:0, streak:0, lastDay:null, cards:{}}, b.progress);
+      else if (b.progress && b.progress.cards){ for (const k in b.progress.cards) if (!S.progress.cards[k]) S.progress.cards[k] = b.progress.cards[k]; }
+      saveProgress(); toast("Backup loaded: " + incoming.length + " topic" + (incoming.length === 1 ? "" : "s") + "."); render();
+    } catch(err){ toast("That file is not a revision backup."); }
+    e.target.value = "";
+  }
+});
+document.addEventListener("dragover", e => { const d = e.target.closest && e.target.closest("#drop"); if (d){ e.preventDefault(); d.classList.add("over"); } });
+document.addEventListener("dragleave", e => { const d = e.target.closest && e.target.closest("#drop"); if (d) d.classList.remove("over"); });
+document.addEventListener("drop", e => { const d = e.target.closest && e.target.closest("#drop"); if (d){ e.preventDefault(); d.classList.remove("over"); addFiles([...e.dataTransfer.files]); } });
+
+async function refreshLimits(){
+  if (!sample) return;
+  try { const l = await sample.limits(); S.imagesOK = !!l.images; if (l.images){ S.add.maxImages = l.images.maxCount; S.add.mediaTypes = l.images.mediaTypes; } } catch(e){ S.imagesOK = false; }
+}
+
+/* ---------- start ---------- */
+applySettings(); render();
+(async function connect(){
+  if (!window.claude || !window.claude.use) return;
+  const [d, u, s] = await Promise.all([claude.use("db"), claude.use("user"), claude.use("sample")]);
+  if (s){ sample = s; S.sampleOK = true; try { const l = await s.limits(); S.imagesOK = !!l.images; } catch(e){} }
+  if (d){
+    db = d;
+    db.collection("decks").onSnapshot(snap => {
+      decksCloud = true;
+      const cloud = snap.docs.map(x => Object.assign({}, x.data(), {id: x.id}));
+      const local = LS.get("sgr-decks", []).filter(l => !cloud.some(c => c.id === l.id));
+      S.decks = cloud.concat(local);
+      if (!["play","add"].includes(S.view)) render();
+    }, () => { decksCloud = false; });
+    const id = u ? await u.id() : null;
+    if (id){
+      progRef = db.doc("data/users/" + id + "/progress");
+      try {
+        const g = await progRef.get();
+        if (g.exists){ const c = g.data(); if ((c.xp || 0) >= (S.progress.xp || 0)) S.progress = Object.assign({xp:0, streak:0, lastDay:null, cards:{}}, JSON.parse(JSON.stringify(c))); else saveProgress(); }
+        else if (S.progress.xp > 0) saveProgress();
+        S.cloud = true;
+      } catch(e){ progRef = null; }
+    }
+  }
+  if (S.view !== "play") render();
+})();
+</script>
+
+</body>
+</html>
