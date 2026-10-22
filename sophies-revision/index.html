@@ -135,6 +135,8 @@ a.btn{text-decoration:none}
 :root[data-theme="dark"] .subj.English{color:var(--warm)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .subj.English{color:var(--warm)} :root:not([data-theme="light"]) .subj.Science{color:var(--good)}}
 :root[data-theme="dark"] .subj.Science{color:var(--good)}
+.home-link{display:inline-block; font-weight:700; color:var(--teal); text-decoration:none}
+.home-link:hover{text-decoration:underline}
 .adddeck{border-style:dashed; justify-content:center; color:var(--teal); font-weight:700; min-height:104px; background:transparent; box-shadow:none}
 
 /* games on a topic */
@@ -515,7 +517,8 @@ function homeView(){
       ${allDecks().map(d => { const s = deckStats(d); return `<button class="deck" data-act="deck" data-id="${esc(d.id)}">${ringHTML(s.strength, s.strength + "%", "", "sm")}<span class="info"><span class="subj ${esc(d.subject)}">${esc(d.subject)}</span><b>${esc(d.title)}</b><span class="small muted">${s.due ? s.due + " to check" : "Next check " + niceDate(s.next)}</span></span></button>`; }).join("")}
       <button class="deck adddeck" data-act="add">${I.plus}<span>Add revision material</span></button>
     </div>
-  </section>`;
+  </section>
+  <a class="home-link" href="../">← All games</a>`;
 }
 
 function deckView(){

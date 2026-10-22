@@ -236,6 +236,19 @@
       </a>
     </div>
   </section>
+
+  <section class="topic" id="revision-cards">
+    <h2>🗂️ Revision cards</h2>
+    <p>Spaced-repetition revision for any subject. Always shown, whatever topics are picked above.</p>
+    <div class="games">
+      <a class="card" href="sophies-revision/">
+        <div class="icon">🗂️</div>
+        <h3>Sophie's GCSE Revision</h3>
+        <p>A daily mission of cards that come back just before you'd forget them. Quizzes, flip cards, key-word matching and method ordering. Comes with a Ratio and Proportion topic, and you can add your own.</p>
+        <div class="tags">Any subject · 1 player</div>
+      </a>
+    </div>
+  </section>
 </main>
 <script>
 "use strict";
@@ -336,6 +349,7 @@ const BESTS = {
   "bracket-factory/": () => { const b = read("bracketFactoryBest"); return b !== null && `${b} / 24 📦`; },
   "grid-lock/": () => { const b = read("gridLockBest"); return b !== null && `${b} / 24 🔑`; },
   "parallel-parking/": () => { const b = read("parallelParkingBest"); return b !== null && `${b} / 30 ⭐`; },
+  "sophies-revision/": () => { const p = read("sgr-progress"); return p && p.xp > 0 && `${p.xp} XP (level ${1 + Math.floor(p.xp / 150)})`; },
 };
 for (const card of document.querySelectorAll("a.card")) {
   const href = card.getAttribute("href");

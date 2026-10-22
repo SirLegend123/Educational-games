@@ -27,6 +27,7 @@ The home page groups the games by topic. Students can tap topics on or off to bu
 | Straight-line graphs | [Laser Battleships](laser-battleships/) | Gradient and y-intercept (`y = mx + c`) | 1 (vs computer) or 2 (pass and play) |
 | Straight-line graphs | [Line Up](line-up/) | Simultaneous equations: where two lines cross | 2 (pass and play) |
 | Straight-line graphs | [Parallel Parking](parallel-parking/) | Gradients of parallel and perpendicular lines | 1 |
+| Any subject | [Sophie's GCSE Revision](sophies-revision/) | Spaced-repetition revision cards | 1 |
 
 ### Laser Battleships
 
@@ -104,6 +105,10 @@ Noughts and crosses with numbers. Each player has the digits 0 to 5, each usable
 ### Revision Escape Room
 
 General revision across every topic. Students choose **Easy, Medium or Hard** and which topics to include. Each topic is a themed room (the Calculation Cellar, the Prime Vault, the Fraction Kitchen, the Observatory, the Bracket Workshop, the Balance Room, the Pattern Library, the Map Room) with three padlocks, and the final Exit Hall mixes questions from all the chosen topics. Rooms come in a random order. There are 72 question makers (8 topics × 3 levels × 3), so questions are new every game. Answers can be numbers, fractions or mixed numbers, expressions, equations of lines, nth terms, standard form, or multiple choice, and the on-screen keypad changes to suit each one. A first wrong answer gives a hint, and a second shows the method. Answers with the right value that aren't simplified get a nudge rather than a wrong mark. The end screen shows keys per room, so students can see which topics to revise next. The best score and time are saved for each level separately. The questions live in `revision-escape/questions.js`.
+
+### Sophie's GCSE Revision
+
+A calm revision app with one card per question and no timers. The home screen sets a daily mission of up to 8 cards. Each card sits in one of five memory boxes and comes back after 1, 2, 4, 7 and then 14 days; a card that isn't known yet goes back to box 1. Each topic has four games: **Quick quiz**, **Flip cards**, **Match the words** and **Order the steps**. Answers can show a ratio table or worked steps and a memory hook, and every card can be read aloud. A Ratio and Proportion topic is built in. New topics are made by copying the app's instructions into Claude and pasting the reply back, or by typing cards in. Settings cover background colour, light or dark, text size, wider letter spacing and sounds. Progress is saved on the device, with backup files to move it to another device.
 
 ## Sharing the games (GitHub Pages)
 
