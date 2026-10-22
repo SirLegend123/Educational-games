@@ -52,6 +52,7 @@
     <h2>📚 Build your revision page</h2>
     <p>Tap topics to show or hide them. Your choice is saved on this device, and your best score in each game shows on its card.</p>
     <div class="chips" id="chips">
+      <button type="button" class="chip" data-topic="revision" aria-pressed="true">🎯 Mixed revision</button>
       <button type="button" class="chip" data-topic="arithmetic" aria-pressed="true">➕ Arithmetic</button>
       <button type="button" class="chip" data-topic="primes" aria-pressed="true">🏰 Primes &amp; factors</button>
       <button type="button" class="chip" data-topic="fractions" aria-pressed="true">🍰 Fractions</button>
@@ -70,6 +71,19 @@
     </div>
   </div>
   <div class="empty" id="empty" hidden><p style="margin:0">No topics chosen yet. Tap the topics you want to revise above.</p></div>
+
+  <section class="topic" id="revision">
+    <h2>🎯 Mixed revision</h2>
+    <p>Revise every topic in one game, at the level that suits you.</p>
+    <div class="games">
+      <a class="card" href="revision-escape/">
+        <div class="icon">🔐</div>
+        <h3>Revision Escape Room</h3>
+        <p>A room for every topic, each with three padlocks to open, then a mixed Exit Hall. Choose easy, medium or hard, and pick the topics to revise.</p>
+        <div class="tags">All topics · Easy, medium or hard · 1 player</div>
+      </a>
+    </div>
+  </section>
 
   <section class="topic" id="arithmetic">
     <h2>➕ Arithmetic</h2>
@@ -314,6 +328,10 @@ const BESTS = {
   "nth-term-vault/": () => { const b = read("nthTermVaultBest"); return b !== null && `${b} / 20 🔑`; },
   "matchstick-patterns/": () => { const b = read("matchstickPatternsBest"); return b !== null && `${b} / 16 ⭐`; },
   "sequence-sniper/": () => { const b = read("sequenceSniperBest"); return b !== null && `${b} points`; },
+  "revision-escape/": () => {
+    const parts = ["easy", "medium", "hard"].map((lv) => { const b = read("revisionEscapeBest-" + lv); return b && `${lv[0].toUpperCase() + lv.slice(1)} ${b.keys}/${b.total}`; }).filter(Boolean);
+    return parts.length > 0 && parts.join(" · ") + " 🔑";
+  },
   "elimination-agent/": () => { const b = read("eliminationAgentBest"); return b !== null && `${b} / 40 🗝️`; },
   "bracket-factory/": () => { const b = read("bracketFactoryBest"); return b !== null && `${b} / 24 📦`; },
   "grid-lock/": () => { const b = read("gridLockBest"); return b !== null && `${b} / 24 🔑`; },

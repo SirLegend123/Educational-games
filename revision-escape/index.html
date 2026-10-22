@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revision Escape Room</title>
+<meta name="description" content="A mixed revision escape room covering every topic: number, fractions, standard form, algebra, sequences and graphs. Choose easy, medium or hard.">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  .levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+  @media (max-width: 640px) { .levels { grid-template-columns: 1fr; } }
+  .level { text-align: left; padding: 14px 16px; border-radius: 14px; border: 3px solid transparent; background: var(--panel-2); cursor: pointer; font: inherit; color: var(--text); }
+  .level .big { font-size: 1.3rem; font-weight: 800; display: block; margin-bottom: 4px; }
+  .level .small { color: var(--muted); font-size: .92rem; font-weight: 500; }
+  .level .best { display: block; margin-top: 8px; font-size: .85rem; color: var(--gold); font-weight: 600; min-height: 1.2em; }
+  .level[aria-pressed="true"] { border-color: var(--p1); background: rgba(61, 220, 255, .12); }
+  .level.easy .big { color: var(--good); } .level.medium .big { color: var(--warn); } .level.hard .big { color: var(--bad); }
+  .topics { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; margin: 8px 0 12px; }
+  .topics label { display: flex; align-items: center; gap: 8px; font-weight: 600; background: var(--panel-2); padding: 8px 10px; border-radius: 10px; margin: 0; cursor: pointer; }
+  .topics input { width: 18px; height: 18px; }
+  .hud { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-bottom: 10px; font-weight: 700; }
+  .hud .val { font-variant-numeric: tabular-nums; }
+  .badge { padding: 2px 12px; border-radius: 999px; font-size: .9rem; }
+  .badge.easy { background: var(--good); color: #052e16; } .badge.medium { background: var(--warn); color: #2b1d00; } .badge.hard { background: var(--bad); color: #3b0a0a; }
+  .map { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .map span { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--panel-2); font-size: 1.05rem; }
+  .map span.now { outline: 2px solid var(--p1); }
+  .map span.done { background: rgba(255, 183, 3, .25); }
+  .room-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .room-head .icon { font-size: 2.6rem; }
+  .room-head h2 { margin: 0; }
+  .locks { display: flex; gap: 8px; margin-left: auto; font-size: 1.6rem; }
+  .locks span { transition: transform .3s; }
+  .locks span.open { transform: rotate(-12deg) scale(1.1); }
+  .question { font-size: clamp(1.15rem, 3.8vw, 1.45rem); font-weight: 700; background: #0a1430; border-radius: 12px; padding: 16px; margin-bottom: 14px; line-height: 1.5; }
+  .question sup, .reveal sup, .steps sup { font-size: .65em; }
+  .frac { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.05; vertical-align: middle; font-size: .9em; margin: 0 2px; }
+  .frac > span:first-child { border-bottom: 2px solid currentColor; padding: 0 4px; }
+  .mixed { display: inline-flex; align-items: center; gap: 2px; }
+  .answer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 1.2rem; font-weight: 700; }
+  .answer input { flex: 1 1 9em; min-width: 8em; max-width: 16em; font-size: 1.25rem; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .answer button { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .sf-input { display: flex; align-items: flex-start; gap: 8px; font-size: 1.4rem; font-weight: 700; flex-wrap: wrap; }
+  .sf-input .a { width: 6em; margin-top: 12px; font-size: 1.2rem; text-align: center; }
+  .sf-input .ten { margin-top: 18px; }
+  .sf-input .n { width: 3.6em; font-size: 1rem; padding: 6px 8px; text-align: center; }
+  .sf-input button { margin-top: 12px; font-size: 1rem; }
+  .options { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+  .options button { font-size: 1.1rem; padding: 14px 12px; text-align: center; }
+  .options button.right { background: var(--good); color: #052e16; border-color: transparent; }
+  .options button.wrong { background: rgba(248, 113, 113, .25); border-color: var(--bad); }
+  .steps { margin: 6px 0 0; padding-left: 1.4em; }
+  .steps li { margin-bottom: 4px; }
+  .feedback.nudge { background: rgba(251, 191, 36, .12); border: 1px solid var(--warn); }
+  .door { text-align: center; font-size: 1.15rem; font-weight: 700; }
+  .door .icon { font-size: 3rem; display: block; }
+  table.results { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table.results td, table.results th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+  <a class="home-link" href="../">← All games</a>
+
+  <section id="start" class="screen">
+    <h1>🔐 Revision Escape Room</h1>
+    <p class="muted">You're locked in a building with a room for every topic. Each room has <strong>three padlocks</strong>, and each padlock opens with a correct answer. Clear every room, then escape through the <strong>Exit Hall</strong>, where the questions are mixed from all your topics.</p>
+    <div class="panel">
+      <h2>1. Choose your level</h2>
+      <div class="levels" role="group" aria-label="Difficulty">
+        <button type="button" class="level easy" data-level="easy" aria-pressed="false"><span class="big">🟢 Easy</span><span class="small">Core skills: times tables, simple fractions, one-step equations, reading gradients.</span><span class="best" id="best-easy"></span></button>
+        <button type="button" class="level medium" data-level="medium" aria-pressed="true"><span class="big">🟠 Medium</span><span class="small">BIDMAS, HCF and LCM, adding fractions, expanding brackets, nth terms.</span><span class="best" id="best-medium"></span></button>
+        <button type="button" class="level hard" data-level="hard" aria-pressed="false"><span class="big">🔴 Hard</span><span class="small">Mixed numbers, standard form calculations, double brackets, simultaneous equations, parallel lines.</span><span class="best" id="best-hard"></span></button>
+      </div>
+      <h2>2. Choose your topics</h2>
+      <div class="topics" id="topics"></div>
+      <div class="row"><button type="button" id="allTopics">Select all</button><button type="button" id="noTopics">Clear</button><span class="muted" id="roomCount"></span></div>
+      <p class="muted" style="margin:12px 0 0">Right first time: 🔑. A wrong answer gets a hint, and a second wrong answer shows the method. The clock is ticking ⏱️</p>
+    </div>
+    <button type="button" class="primary" id="startBtn">Enter the building</button>
+    <p id="startMsg" class="error"></p>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <span id="roomTitle">Room 1</span>
+      <span class="badge" id="levelBadge"></span>
+      <span class="spacer"></span>
+      <span>🔑 <span class="val" id="keys">0</span></span>
+      <span>⏱️ <span class="val" id="timer">0:00</span></span>
+    </div>
+    <div class="map" id="map" aria-hidden="true"></div>
+    <div class="panel">
+      <div class="room-head">
+        <span class="icon" id="roomIcon"></span>
+        <div><h2 id="roomName"></h2><span class="muted" id="roomTopic"></span></div>
+        <div class="locks" id="locks" aria-label="Padlocks"></div>
+      </div>
+      <form id="form" autocomplete="off">
+        <div class="question" id="question" aria-live="polite"></div>
+        <div id="answerArea"></div>
+        <div id="keypad"></div>
+        <div id="msg" class="error" style="margin-top:8px"></div>
+        <div id="feedback" hidden></div>
+      </form>
+      <div class="row" style="margin-top:12px"><button type="button" class="primary" id="nextBtn" hidden>Next →</button></div>
+    </div>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="panel" style="text-align:center">
+      <div style="font-size:3.5rem;line-height:1">🚪🏃</div>
+      <h1>You escaped!</h1>
+      <p style="font-size:1.3rem" id="overStats"></p>
+      <p id="overText" class="muted"></p>
+      <div class="row" style="justify-content:center">
+        <button type="button" class="primary" id="againBtn">Play again (new questions)</button>
+        <button type="button" id="changeBtn">Change level or topics</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>How you did in each room</h2>
+      <p class="muted" style="margin:0 0 6px">Rooms with fewer keys are the topics to revise next.</p>
+      <table class="results"><thead><tr><th>Room</th><th>Topic</th><th>Keys</th></tr></thead><tbody id="resultRows"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<script src="../shared/lines.js"></script>
+<script src="../shared/algebra.js"></script>
+<script src="../shared/keypad.js"></script>
+<script src="questions.js"></script>
+<script>
+"use strict";
+const { TOPICS } = Bank;
+const PER_ROOM = 3;
+const LEVEL_NAMES = { easy: "Easy", medium: "Medium", hard: "Hard" };
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); };
+const shuffle = Lines.shuffle;
+const neg = (v) => (v < 0 ? "−" + -v : String(v));
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const clock = (ms) => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+
+const K = Keypad.key;
+const KEYS = {
+  num: [K("−", "−"), K("/"), K(".")],
+  frac: [K("/"), K("space", " ", "word")],
+  line: [K("+", " + "), K("−", " − "), Keypad.letter("x"), K("/"), K("."), K("y =", "y = ", "word")],
+  rule: [K("+", " + "), K("−", " − "), Keypad.letter("n")],
+  sf: [K("."), K("−", "−")],
+};
+const exprKeys = (letters) => [K("+", " + "), K("−", " − "), Keypad.letter(letters[0]), K("²"), ...letters.slice(1).map(Keypad.letter)];
+const pad = Keypad.create($("keypad"), { inputs: () => [...$("answerArea").querySelectorAll("input")], keys: KEYS.num });
+
+/* ---------- Start screen ---------- */
+
+let level = "medium";
+const storeGet = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+const storeSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } };
+const BEST = (lv) => "revisionEscapeBest-" + lv;
+
+$("topics").innerHTML = TOPICS.map((t) => `<label><input type="checkbox" value="${t.id}" checked> ${t.icon} ${t.name}</label>`).join("");
+const chosenTopics = () => [...$("topics").querySelectorAll("input:checked")].map((i) => i.value);
+function updateCount() {
+  const n = chosenTopics().length;
+  $("roomCount").textContent = n ? `${n + 1} rooms, ${(n + 1) * PER_ROOM} padlocks` : "Choose at least one topic";
+  $("startMsg").textContent = "";
+}
+$("topics").addEventListener("change", updateCount);
+$("allTopics").addEventListener("click", () => { $("topics").querySelectorAll("input").forEach((i) => { i.checked = true; }); updateCount(); });
+$("noTopics").addEventListener("click", () => { $("topics").querySelectorAll("input").forEach((i) => { i.checked = false; }); updateCount(); });
+document.querySelectorAll(".level").forEach((b) => b.addEventListener("click", () => {
+  level = b.dataset.level;
+  document.querySelectorAll(".level").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+}));
+function showBests() {
+  for (const lv of Object.keys(LEVEL_NAMES)) {
+    const b = storeGet(BEST(lv));
+    $("best-" + lv).textContent = b ? `🏅 Best: ${b.keys}/${b.total} keys in ${clock(b.time)}` : "";
+  }
+}
+showBests();
+updateCount();
+
+/* ---------- Building the rooms ---------- */
+
+let rooms, roomIdx, qIdx, tries, keys, startTime, timerId;
+
+function buildRooms(topicIds) {
+  const topics = shuffle(TOPICS.filter((t) => topicIds.includes(t.id)));
+  const out = topics.map((t) => ({ topic: t, name: t.room, icon: t.icon, label: t.name, qs: shuffle([...t.gen[level]]).map((make) => ({ ...make(), topic: t })) }));
+  const finalQs = Array.from({ length: PER_ROOM }, () => { const t = topics[Math.floor(Math.random() * topics.length)]; const make = t.gen[level][Math.floor(Math.random() * 3)]; return { ...make(), topic: t }; });
+  out.push({ name: "The Exit Hall", icon: "🚪", label: "Mixed questions from all your topics", qs: finalQs, final: true });
+  for (const r of out) r.keys = 0;
+  return out;
+}
+
+$("startBtn").addEventListener("click", start);
+$("againBtn").addEventListener("click", start);
+$("changeBtn").addEventListener("click", () => { showBests(); show("start"); });
+
+function start() {
+  const ids = chosenTopics();
+  if (!ids.length) { $("startMsg").textContent = "Choose at least one topic first."; return; }
+  rooms = buildRooms(ids);
+  roomIdx = 0; keys = 0;
+  startTime = performance.now();
+  clearInterval(timerId);
+  $("timer").textContent = "0:00";
+  timerId = setInterval(() => { $("timer").textContent = clock(performance.now() - startTime); }, 250);
+  $("levelBadge").textContent = LEVEL_NAMES[level];
+  $("levelBadge").className = "badge " + level;
+  show("game");
+  startRoom();
+}
+
+function renderMap() {
+  $("map").innerHTML = rooms.map((r, i) => `<span class="${i < roomIdx ? "done" : i === roomIdx ? "now" : ""}" title="${esc(r.name)}">${i < roomIdx ? "✅" : r.icon}</span>`).join("");
+  $("keys").textContent = keys;
+}
+
+function startRoom() {
+  const r = rooms[roomIdx];
+  qIdx = 0;
+  $("roomTitle").textContent = `Room ${roomIdx + 1} of ${rooms.length}`;
+  $("roomIcon").textContent = r.icon;
+  $("roomName").textContent = r.name;
+  $("roomTopic").textContent = r.label;
+  renderMap();
+  startQuestion();
+}
+
+function renderLocks() {
+  $("locks").innerHTML = Array.from({ length: PER_ROOM }, (_, i) => `<span class="${i < qIdx ? "open" : ""}">${i < qIdx ? "🔓" : "🔒"}</span>`).join("");
+}
+
+/* ---------- One question ---------- */
+
+function startQuestion() {
+  const q = rooms[roomIdx].qs[qIdx];
+  tries = 0;
+  renderLocks();
+  $("question").innerHTML = (rooms[roomIdx].final ? `<span class="muted" style="font-size:.85rem;font-weight:600">${q.topic.icon} ${q.topic.name}</span><br>` : "") + q.html;
+  $("msg").textContent = "";
+  $("feedback").hidden = true;
+  $("nextBtn").hidden = true;
+  const area = $("answerArea");
+  const box = (ph, label) => `<div class="answer">${label ? `<span>${label}</span>` : ""}<input type="text" id="ans" placeholder="${ph}" spellcheck="false" autocapitalize="off"> <button type="submit" class="go">Unlock</button></div>`;
+  if (q.type === "mc") {
+    area.innerHTML = `<div class="options">${q.options.map((o, i) => `<button type="button" data-i="${i}">${o}</button>`).join("")}</div>`;
+    area.querySelectorAll("[data-i]").forEach((b) => b.addEventListener("click", () => answerMc(+b.dataset.i, b)));
+  } else if (q.type === "sf") {
+    area.innerHTML = `<div class="sf-input"><input type="text" class="a" id="sfA" placeholder="a" aria-label="front number"><span class="ten">× 10</span><input type="text" class="n" id="sfN" placeholder="n" aria-label="power of 10"><button type="submit" class="go">Unlock</button></div>`;
+    pad.setKeys(KEYS.sf);
+  } else if (q.type === "frac") {
+    area.innerHTML = box("e.g. 3/4 or 2 1/3", "");
+    pad.setKeys(KEYS.frac);
+  } else if (q.type === "expr") {
+    area.innerHTML = box("e.g. 3x + 12", "");
+    pad.setKeys(exprKeys(q.letters || ["x"]));
+  } else if (q.type === "line") {
+    area.innerHTML = box("y = mx + c", "");
+    pad.setKeys(KEYS.line);
+  } else if (q.type === "rule") {
+    area.innerHTML = box("e.g. 4n + 3", "nth term =");
+    pad.setKeys(KEYS.rule);
+  } else {
+    area.innerHTML = box("your answer", q.prefix || "");
+    pad.setKeys(KEYS.num);
+  }
+  pad.refresh();
+  const first = area.querySelector("input, button");
+  if (first) first.focus();
+}
+
+// The correct answer, written out.
+function answerHtml(q) {
+  switch (q.type) {
+    case "mc": return q.options[q.correct];
+    case "frac": return Bank.fHtml(q.ans);
+    case "expr": return Alg.fmt(q.ans, { html: true });
+    case "line": return Lines.formatEq(q.ans.m, q.ans.c);
+    case "rule": return Lines.lin(q.ans.a, q.ans.b, "decimal", "n");
+    case "sf": return Bank.sfHtml(q.ans);
+    default: return q.check ? "" : (q.prefix ? q.prefix + " " : "") + (Number.isInteger(q.ans) ? neg(q.ans) : Lines.fmt(q.ans));
+  }
+}
+
+// Read a fraction, mixed number, whole number or decimal: { n, d, simplest } or null.
+function parseFrac(raw) {
+  let s = raw.trim().replace(/[−–—]/g, "-").replace(/\s*\/\s*/g, "/").replace(/\s+/g, " ");
+  let sign = 1;
+  if (s.startsWith("-")) { sign = -1; s = s.slice(1).trim(); }
+  let m;
+  if ((m = s.match(/^(\d+) (\d+)\/(\d+)$/)) && +m[3] > 0) return { n: sign * (+m[1] * +m[3] + +m[2]), d: +m[3], simplest: +m[2] < +m[3] && gcd(+m[2], +m[3]) === 1 };
+  if ((m = s.match(/^(\d+)\/(\d+)$/)) && +m[2] > 0) return { n: sign * +m[1], d: +m[2], simplest: gcd(+m[1], +m[2]) === 1 };
+  if ((m = s.match(/^\d+$/))) return { n: sign * +s, d: 1, simplest: true };
+  const v = Lines.parseNumber(raw);
+  return isNaN(v) ? null : { n: v, d: 1, simplest: true, decimal: true };
+}
+
+// Check the typed answer: { ok } or { nudge } or { error } or { ok: false, why }.
+function check(q) {
+  const raw = $("ans") ? $("ans").value : "";
+  switch (q.type) {
+    case "num": {
+      const v = Lines.parseNumber(raw);
+      if (isNaN(v)) return { error: "Type a number, e.g. 12, −3, 0.5 or 2/3." };
+      return { ok: q.check ? q.check(v) : Math.abs(v - q.ans) < 1e-9 };
+    }
+    case "frac": {
+      const p = parseFrac(raw);
+      if (!p) return { error: "Type a fraction like 3/4, or a mixed number like 2 1/3 (with a space)." };
+      const ok = p.decimal ? Math.abs(p.n - q.ans.n / q.ans.d) < 1e-9 : p.n * q.ans.d === q.ans.n * p.d;
+      if (ok && q.simplest && !(p.simplest && !p.decimal && p.n === q.ans.n && p.d === q.ans.d)) return { nudge: "That's the right value, but it isn't fully simplified yet." };
+      if (ok && !p.simplest) return { nudge: "That's the right value. Now simplify it fully." };
+      return { ok };
+    }
+    case "expr": {
+      const r = Alg.parse(raw);
+      if (r.error) return { error: r.error };
+      const ok = Alg.eq(r.poly, q.ans);
+      if (ok && r.likeTerms) return { nudge: "That's right, but collect the like terms to simplify it fully." };
+      return { ok };
+    }
+    case "line": {
+      const r = Lines.parseLine(raw);
+      if (r.error) return { error: r.error };
+      return { ok: Math.abs(r.m - q.ans.m) < 1e-9 && Math.abs(r.c - q.ans.c) < 1e-9 };
+    }
+    case "rule": {
+      const r = Lines.parseNth(raw);
+      if (r.error) return { error: r.error };
+      return { ok: Math.abs(r.a - q.ans.a) < 1e-9 && Math.abs(r.b - q.ans.b) < 1e-9 };
+    }
+    case "sf": {
+      const aStr = $("sfA").value.trim().replace(/\s/g, ""), nStr = $("sfN").value.trim().replace(/[−–—]/g, "-");
+      if (!/^-?\d+$/.test(nStr) || !/^\d*\.?\d+$/.test(aStr)) return { error: "Fill in both boxes, e.g. 4.5 and −3." };
+      const [i, f = ""] = aStr.split(".");
+      const v = Bank.V(parseInt((i || "0") + f, 10), parseInt(nStr, 10) - f.length);
+      const same = v.M === q.ans.M && v.E === q.ans.E;
+      const a = parseFloat(aStr);
+      if (same && !(a >= 1 && a < 10)) return { ok: false, why: `That's the right value, but ${esc(aStr)} isn't between 1 and 10, so it isn't standard form yet.` };
+      return { ok: same };
+    }
+  }
+  return { ok: false };
+}
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const q = rooms[roomIdx].qs[qIdx];
+  if (q.type === "mc" || !$("nextBtn").hidden) return;
+  const r = check(q);
+  if (r.error) { $("msg").textContent = r.error; return; }
+  $("msg").textContent = "";
+  if (r.nudge) return feedback("nudge", `<p><strong>Nearly!</strong> ${r.nudge}</p><p class="muted">This doesn't count as a wrong try.</p>`);
+  grade(q, r.ok, r.why);
+});
+
+function answerMc(i, btn) {
+  const q = rooms[roomIdx].qs[qIdx];
+  if (!$("nextBtn").hidden || btn.disabled) return;
+  const ok = i === q.correct;
+  btn.classList.add(ok ? "right" : "wrong");
+  btn.disabled = true;
+  grade(q, ok);
+}
+
+function feedback(kind, html) {
+  const fb = $("feedback");
+  fb.hidden = false;
+  fb.className = "feedback " + kind;
+  fb.innerHTML = html;
+}
+
+function grade(q, ok, why) {
+  tries++;
+  const room = rooms[roomIdx];
+  if (ok) {
+    if (tries === 1) { keys++; room.keys++; }
+    feedback("good", `<p><strong>🔓 Click! ${tries === 1 ? "+🔑" : ""}</strong> ${answerHtml(q) ? `The answer is <strong>${answerHtml(q)}</strong>.` : ""}</p><details><summary>See the method</summary>${q.explain}</details>`);
+    return done();
+  }
+  if (tries === 1) {
+    feedback("bad", `<p><strong>❌ The padlock won't open.</strong> ${why || ""}</p><p>💡 ${q.hint}</p><p class="muted">Try again!</p>`);
+    $("form").classList.remove("shake"); void $("form").offsetWidth; $("form").classList.add("shake");
+    const box = $("ans") || $("sfA");
+    if (box) box.select();
+    return;
+  }
+  feedback("info", `<p><strong>The padlock clicks open anyway (no key).</strong> ${why || ""} ${answerHtml(q) ? `The answer is <strong>${answerHtml(q)}</strong>.` : ""}</p>${q.explain}`);
+  done();
+}
+
+function done() {
+  const q = rooms[roomIdx].qs[qIdx];
+  $("answerArea").querySelectorAll("input, button").forEach((el) => { el.disabled = true; });
+  if (q.type === "mc") $("answerArea").querySelectorAll("[data-i]")[q.correct].classList.add("right");
+  qIdx++;
+  renderLocks();
+  renderMap();
+  const roomDone = qIdx >= PER_ROOM;
+  const last = roomIdx === rooms.length - 1;
+  $("nextBtn").textContent = !roomDone ? "Next padlock →" : last ? "Escape! 🏃" : "Open the door →";
+  if (roomDone) {
+    $("feedback").insertAdjacentHTML("beforeend", `<div class="door" style="margin-top:12px"><span class="icon">🚪✨</span>${esc(rooms[roomIdx].name)} cleared with ${rooms[roomIdx].keys}/${PER_ROOM} keys!</div>`);
+  }
+  $("nextBtn").hidden = false;
+  $("nextBtn").focus();
+}
+
+$("nextBtn").addEventListener("click", () => {
+  if (qIdx < PER_ROOM) return startQuestion();
+  roomIdx++;
+  if (roomIdx < rooms.length) startRoom();
+  else finish();
+});
+
+function finish() {
+  clearInterval(timerId);
+  const time = performance.now() - startTime;
+  const total = rooms.length * PER_ROOM;
+  const best = storeGet(BEST(level));
+  const isBest = !best || keys / total > best.keys / best.total || (keys / total === best.keys / best.total && time < best.time);
+  if (isBest) storeSet(BEST(level), { keys, total, time });
+  $("overStats").textContent = `${LEVEL_NAMES[level]} level · 🔑 ${keys} / ${total} keys · ⏱️ ${clock(time)}`;
+  $("overText").textContent = (isBest ? `🏅 New best for ${LEVEL_NAMES[level]} on this device! ` : "") +
+    (keys === total ? (level === "hard" ? "A flawless escape at the hardest level. Amazing!" : "Every padlock first time! Ready to try a harder level?") : "Play again for new questions.");
+  $("resultRows").innerHTML = "";
+  for (const r of rooms) {
+    const tr = document.createElement("tr");
+    for (const v of [`${r.icon} ${r.name}`, r.final ? "Mixed" : r.label, "🔑".repeat(r.keys) + "▫️".repeat(PER_ROOM - r.keys)]) {
+      const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+    }
+    $("resultRows").appendChild(tr);
+  }
+  show("over");
+}
+</script>
+</body>
+</html>
