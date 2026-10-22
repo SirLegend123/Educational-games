@@ -52,6 +52,7 @@
     <h2>📚 Build your revision page</h2>
     <p>Tap topics to show or hide them. Your choice is saved on this device, and your best score in each game shows on its card.</p>
     <div class="chips" id="chips">
+      <button type="button" class="chip" data-topic="arithmetic" aria-pressed="true">➕ Arithmetic</button>
       <button type="button" class="chip" data-topic="primes" aria-pressed="true">🏰 Primes &amp; factors</button>
       <button type="button" class="chip" data-topic="fractions" aria-pressed="true">🍰 Fractions</button>
       <button type="button" class="chip" data-topic="standard-form" aria-pressed="true">🚀 Standard form</button>
@@ -69,6 +70,19 @@
     </div>
   </div>
   <div class="empty" id="empty" hidden><p style="margin:0">No topics chosen yet. Tap the topics you want to revise above.</p></div>
+
+  <section class="topic" id="arithmetic">
+    <h2>➕ Arithmetic</h2>
+    <p>Mental addition and number strategy.</p>
+    <div class="games">
+      <a class="card" href="noughts-and-numbers/">
+        <div class="icon">⭕</div>
+        <h3>Noughts and Numbers</h3>
+        <p>Noughts and crosses with the digits 0 to 5. Each digit can be used once. Be the first to complete a line that totals 10!</p>
+        <div class="tags">Mental addition &amp; strategy · 1 or 2 players</div>
+      </a>
+    </div>
+  </section>
 
   <section class="topic" id="primes">
     <h2>🏰 Primes &amp; factors</h2>
@@ -314,7 +328,7 @@ for (const card of document.querySelectorAll("a.card")) {
     if (text) div.textContent = `🏅 Your best: ${text}`;
     else { div.textContent = "Not played yet on this device"; div.classList.add("none"); }
   } else {
-    div.textContent = href === "laser-battleships/" ? "Play with a friend or against the computer" : "A two-player game: play with a friend";
+    div.textContent = href === "line-up/" ? "A two-player game: play with a friend" : "Play with a friend or against the computer";
     div.classList.add("none");
   }
   card.appendChild(div);

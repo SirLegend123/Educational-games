@@ -6,10 +6,11 @@ A collection of free browser-based educational games. Each game is a self-contai
 
 Every game where students type answers has an **on-screen keypad**, so tablets and phones don't need their own keyboard, which can cover half the screen. Each game shows the keys it needs: `y =`, `x`, `/` and `.` for straight lines; `n` for sequences; `²` for brackets; `/` and a space key for mixed numbers; `.` and `−` for standard form. The keypad types into whichever answer box was last tapped and hides itself between questions. A physical keyboard still works, and "Use my keyboard instead" switches the keypad off on that device (remembered across all games). The code is in `shared/keypad.js`.
 
-The home page groups the games by topic. Students can tap topics on or off to build their own revision page (remembered on their device), and each card shows their best score in that game. **Copy a link to these topics** gives a link like `https://sirlegend123.github.io/Educational-games/?topics=fractions,standard-form` that opens with just those topics, handy for setting revision for a class. The topic names are `primes`, `fractions`, `standard-form`, `expressions`, `equations`, `sequences` and `graphs`.
+The home page groups the games by topic. Students can tap topics on or off to build their own revision page (remembered on their device), and each card shows their best score in that game. **Copy a link to these topics** gives a link like `https://sirlegend123.github.io/Educational-games/?topics=fractions,standard-form` that opens with just those topics, handy for setting revision for a class. The topic names are `arithmetic`, `primes`, `fractions`, `standard-form`, `expressions`, `equations`, `sequences` and `graphs`.
 
 | Topic | Game | Skill | Players |
 | --- | --- | --- | --- |
+| Arithmetic | [Noughts and Numbers](noughts-and-numbers/) | Mental addition and strategy | 1 (vs computer) or 2 |
 | Primes & factors | [Prime Factor Defence](prime-defence/) | Prime factorisation and index notation | 1 |
 | Fractions | [Fraction Wall Race](fraction-wall/) | Adding fractions and equivalent fractions | 1 |
 | Fractions | [Mixed Number Mountain](mixed-number-mountain/) | Converting mixed numbers and the four operations with them | 1 |
@@ -94,6 +95,10 @@ Twelve locks, each a pair of brackets to expand with the grid method. Step 1: fi
 ### Elimination Agent
 
 Ten pairs of "intercepted clues", each a pair of simultaneous equations hiding x and y. Students work through the elimination method in four checked steps: choose what to multiply each equation by so the x or y terms match (any valid choice is accepted), decide whether to add or subtract (same signs: subtract; different signs: add), solve for one letter, then substitute back for the other. The game then checks the answer in the other equation. The completed working builds up on screen like a textbook. Codes progress from matching coefficients, to opposite signs, multiplying one equation, multiplying both, and negative answers, to a cinema-ticket word problem. Wrong answers get explained (e.g. "4x and 4x have the same sign, so adding gives 8x"), and a second wrong answer shows that step. Expert mode asks for x and y directly.
+
+### Noughts and Numbers
+
+Noughts and crosses with numbers. Each player has the digits 0 to 5, each usable once per game. Players take turns placing a digit in an empty square (tap the square then the digit, the digit then the square, or type 0–5). The player who completes a full row, column or diagonal totalling exactly 10 wins; digits from both players count. Optional running totals sit beside every line and turn yellow when one more digit could make 10. Play two players on one device, or against the computer: "Easy", or "Tricky", which takes a winning move when it can and never leaves an immediate win if it can avoid it. Scores carry over between rounds, and the starting player alternates.
 
 ## Sharing the games (GitHub Pages)
 
