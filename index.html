@@ -238,20 +238,14 @@
   </section>
 
   <section class="topic" id="revision-cards">
-    <h2>🗂️ Revision apps</h2>
-    <p>Personal revision apps, with topics added over time. Always shown, whatever topics are picked above.</p>
+    <h2>🗂️ Revision cards</h2>
+    <p>Spaced-repetition revision for any subject. Always shown, whatever topics are picked above.</p>
     <div class="games">
       <a class="card" href="sophies-revision/">
         <div class="icon">🗂️</div>
         <h3>Sophie's GCSE Revision</h3>
         <p>A daily mission of cards that come back just before you'd forget them. Quizzes, flip cards, key-word matching and method ordering. Comes with a Ratio and Proportion topic, and you can add your own.</p>
         <div class="tags">Any subject · 1 player</div>
-      </a>
-      <a class="card" href="sapphires-maths/">
-        <div class="icon">💷</div>
-        <h3>Sapphire's Maths</h3>
-        <p>Calm, step-by-step maths revision with pictures, read-aloud and no timers. Starts with exchange rates: knowing when to times and when to divide.</p>
-        <div class="tags">Exchange rates · 1 player</div>
       </a>
     </div>
   </section>
@@ -355,7 +349,6 @@ const BESTS = {
   "bracket-factory/": () => { const b = read("bracketFactoryBest"); return b !== null && `${b} / 24 📦`; },
   "grid-lock/": () => { const b = read("gridLockBest"); return b !== null && `${b} / 24 🔑`; },
   "parallel-parking/": () => { const b = read("parallelParkingBest"); return b !== null && `${b} / 30 ⭐`; },
-  "sapphires-maths/": () => { const p = read("sapphire-progress"); const n = p && p.stars ? Object.values(p.stars).reduce((a, b) => a + b, 0) : 0; return n > 0 && `${n} ⭐`; },
   "sophies-revision/": () => { const p = read("sgr-progress"); return p && p.xp > 0 && `${p.xp} XP (level ${1 + Math.floor(p.xp / 150)})`; },
 };
 for (const card of document.querySelectorAll("a.card")) {
