@@ -227,8 +227,7 @@ const App = (() => {
         <span class="info"><b>${esc(t.title)}</b><span class="small muted">${esc(t.blurb)}</span>
         <span class="small">${I.star("var(--sun)", 16)} ${s.got} of ${s.max} stars</span></span></button>`; }).join("")}
       <div class="tcard soon"><span class="info"><b>More topics soon</b><span class="small">New topics will appear here.</span></span></div>
-    </div>
-    <a class="home-link" href="../">← All the games</a>`;
+    </div>`;
   }
   function topicView(){
     const t = S.topic;
